@@ -1,0 +1,196 @@
+@font-face {
+  font-family: 'Roboto';
+  src: url('/fonts/Roboto/Roboto-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  src: url('/fonts/Roboto/Roboto-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  src: url('/fonts/Roboto/Roboto-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  src: url('/fonts/Roboto/Roboto-MediumItalic.ttf') format('truetype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  src: url('/fonts/Roboto/Roboto-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  src: url('/fonts/Roboto/Roboto-BoldItalic.ttf') format('truetype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Шрифт для заголовков */
+@font-face {
+  font-family: 'SPSL New Cyrillic';
+  src: url('/fonts/spsl_new_cyrillic.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 48 100% 95%;       
+    --foreground: 36 53% 16%;       
+    --card: 48 100% 98%;          
+    --card-foreground: 36 53% 16%;
+    --popover: 48 100% 98%;
+    --popover-foreground: 36 53% 16%;
+    --primary: 8 64% 33%;            
+    --primary-foreground: 0 0% 100%;
+    --secondary: 48 64% 53%;         
+    --secondary-foreground: 36 53% 16%;
+    --muted: 36 44% 89%;             
+    --muted-foreground: 36 24% 35%;  
+    --accent: 48 64% 53%;            
+    --accent-foreground: 36 53% 16%;
+    --destructive: 0 74% 47%;        
+    --destructive-foreground: 0 0% 100%;
+    --border: 8 64% 33% / 0.15;      
+    --input: transparent;
+    --input-background: 48 100% 98%;
+    --switch-background: 230 10% 81%; 
+    --ring: 8 64% 33%;
+    --radius: 0.5rem;
+    --schedule-highlight: 8 64% 33%;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html {
+    font-size: 16px;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-image:
+      radial-gradient(circle at 20px 20px, rgba(212, 175, 55, 0.03) 1px, transparent 1px),
+      radial-gradient(circle at 60px 60px, rgba(139, 45, 30, 0.02) 1px, transparent 1px);
+    background-size: 80px 80px;
+    background-position: 0 0, 40px 40px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'SPSL New Cyrillic', 'PT Serif', serif;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+  h2 {
+    font-size: 1.25rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+  h3 {
+    font-size: 1.125rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+  h4 {
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  label, button {
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  input {
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+  }
+}
+
+.wp-content {
+  max-width: 100%;
+}
+.wp-content img {
+  max-width: 100%;
+  height: auto;
+}
+.wp-content .aligncenter {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+.wp-content .alignleft {
+  float: left;
+  margin: 0.5rem 1rem 0.5rem 0;
+}
+.wp-content .alignright {
+  float: right;
+  margin: 0.5rem 0 0.5rem 1rem;
+}
+.wp-content::after {
+  content: "";
+  clear: both;
+  display: table;
+}
+.wp-content p {
+  margin-bottom: 1.5em;
+  line-height: 1.6;
+}
+.wp-content h1, .wp-content h2, .wp-content h3, .wp-content h4, .wp-content h5, .wp-content h6 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+}
+.wp-content ul, .wp-content ol {
+  margin: 0 0 1.5em 2em;
+}
+.wp-content table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  width: 100%;
+}
+.wp-content th, .wp-content td {
+  border: 1px solid #ddd;
+  padding: 0.5em;
+}
+
+strong, b {
+  font-weight: 700;
+}
