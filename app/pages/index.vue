@@ -1,8 +1,7 @@
 <template>
   <div class="w-full">
-    <section class="relative flex justify-center items-center bg-cover bg-center h-[600px]" :style="{
-      backgroundImage: `linear-gradient(rgba(26, 58, 92, 0.4), rgba(26, 58, 92, 0.6)), url(${activeBanner})`,
-    }">
+    <section class="relative flex justify-center items-center h-[600px] bg-gradient-to-br from-primary to-primary/80"
+      :style="bannerStyle">
       <div class="px-4 text-white text-center">
         <h2 class="mb-4 text-5xl md:text-6xl lg:text-6xl">
           Кирилло-Мефодиевский храм города Балашихи
@@ -26,6 +25,7 @@
       </div>
     </section>
 
+    <!-- Расписание -->
     <section class="mx-auto px-4 lg:px-8 py-16 container">
       <h2 class="mb-8 text-green-700 text-4xl text-center">Расписание богослужений</h2>
       <div v-if="upcomingSchedule.length" class="gap-6 grid grid-cols-1 md:grid-cols-3 mb-8">
@@ -41,7 +41,6 @@
             </div>
           </div>
           <div v-if="item.liturgical" class="liturgical-day schedule-text" v-html="item.liturgical"></div>
-          <!-- Время служб -->
           <div v-if="item.services" class="services-time schedule-text" v-html="item.services"></div>
           <div v-if="!item.liturgical && !item.services" class="text-muted-foreground text-sm">
             Нет информации
@@ -61,6 +60,7 @@
       </div>
     </section>
 
+    <!-- О храме -->
     <section class="py-16">
       <div class="mx-auto px-4 lg:px-8 container">
         <div class="mx-auto max-w-3xl text-center">
@@ -83,6 +83,7 @@
       </div>
     </section>
 
+    <!-- Пожертвования -->
     <section class="py-6 border-border border-y">
       <div class="mx-auto px-4 lg:px-8 container">
         <div class="flex flex-col justify-between items-center gap-4 mx-auto max-w-4xl">
@@ -100,6 +101,7 @@
       </div>
     </section>
 
+    <!-- Анонсы -->
     <section class="mx-auto px-4 lg:px-8 py-16 container">
       <h2 class="mb-8 text-primary text-4xl text-center">Анонсы</h2>
       <div v-if="latestAnnouncements.length"
@@ -146,6 +148,7 @@
       </div>
     </section>
 
+    <!-- Новости -->
     <section class="mx-auto px-4 lg:px-8 py-16 container">
       <h2 class="mb-8 text-primary text-4xl text-center">Последние новости</h2>
       <div v-if="latestNews.length" class="gap-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 mx-auto mb-8 max-w-5xl">
@@ -191,11 +194,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Church, ArrowRight, Calendar } from 'lucide-vue-next'
 import Button from '~/components/ui/Button.vue'
 import Card from '~/components/ui/Card.vue'
 import { useContentStore } from '~/stores/content'
+
+useSeoMeta({
+  title: 'Кирилло-Мефодиевский храм Балашихи | Официальный сайт',
+  description: 'Официальный сайт Кирилло-Мефодиевского храма в микрорайоне Железнодорожный города Балашиха. Расписание богослужений, новости прихода, воскресная школа, анонсы. Балашихинская епархия Русской Православной Церкви.',
+  ogTitle: 'Кирилло-Мефодиевский храм Балашихи',
+  ogDescription: 'Расписание богослужений, новости, анонсы Кирилло-Мефодиевского храма в Балашихе',
+  ogImage: '/images/home.jpg',
+  ogUrl: 'https://kirmefhram.ru',
+})
 
 const store = useContentStore()
 
@@ -203,10 +215,28 @@ await callOnce('main-news', () => store.fetchNews())
 await callOnce('main-announcements', () => store.fetchAnnouncements())
 await callOnce('main-schedule', () => store.fetchSchedule())
 
+// Баннеры
 const bannerImages = ref<string[]>([])
 const currentBannerIndex = ref(0)
-const defaultBanner = '/images/home.jpg'
-const activeBanner = computed(() => bannerImages.value[currentBannerIndex.value] || defaultBanner)
+const bannersLoaded = ref(false)
+
+const activeBanner = computed(() => {
+  if (!bannersLoaded.value || bannerImages.value.length === 0) return ''
+  return bannerImages.value[currentBannerIndex.value] || bannerImages.value[0] || ''
+})
+
+const bannerStyle = computed(() => {
+  if (activeBanner.value) {
+    return {
+      backgroundImage: `linear-gradient(rgba(26, 58, 92, 0.4), rgba(26, 58, 92, 0.6)), url(${activeBanner.value})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center'
+    }
+  }
+  return {}
+})
+
+let rotationTimer: ReturnType<typeof setInterval> | null = null
 
 const fetchBanners = async () => {
   try {
@@ -219,28 +249,35 @@ const fetchBanners = async () => {
       if (item.banner?.guid) images.push(item.banner.guid)
       if (item.banner2?.guid) images.push(item.banner2.guid)
     }
-    bannerImages.value = images.length > 0 ? images : [defaultBanner]
+    if (images.length > 0) {
+      bannerImages.value = images
+      bannersLoaded.value = true
+      currentBannerIndex.value = Math.floor(Math.random() * images.length)
+    }
   } catch (err) {
     console.error('fetchBanners error:', err)
-    bannerImages.value = [defaultBanner]
   }
 }
 
-onMounted(() => {
-  fetchBanners()
-  setInterval(() => {
+const startRotation = () => {
+  rotationTimer = setInterval(() => {
     if (bannerImages.value.length > 1) {
       currentBannerIndex.value = (currentBannerIndex.value + 1) % bannerImages.value.length
     }
-  }, 60000)
-  setTimeout(() => {
-    if (bannerImages.value.length > 1) {
-      currentBannerIndex.value = Math.floor(Math.random() * bannerImages.value.length)
-    }
-  }, 50)
+  }, 3600000)
+}
+
+onMounted(() => {
+  fetchBanners().then(() => {
+    startRotation()
+  })
 })
 
-// Computed (данные из стора уже есть на сервере и клиенте)
+onUnmounted(() => {
+  if (rotationTimer) clearInterval(rotationTimer)
+})
+
+// Computed
 const latestNews = computed(() => {
   const news = store.news || []
   return [...news]
@@ -256,7 +293,6 @@ const latestAnnouncements = computed(() => {
 })
 
 const upcomingSchedule = computed(() => {
-  // Используем геттер стора, который возвращает первые 3 заполненных дня
   const filled = store.filledScheduleForTodayAndNextTwo || []
   const monthNames = [
     'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',

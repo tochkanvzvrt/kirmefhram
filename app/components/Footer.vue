@@ -1,14 +1,12 @@
 <template>
   <footer class="bg-white mt-auto border-border border-t">
     <div class="mx-auto px-4 lg:px-8 py-12 container">
-      <!-- Показываем индикатор загрузки, если данные ещё не получены -->
       <div v-if="pending" class="py-4 text-center">Загрузка...</div>
       <div v-else class="gap-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <!-- Логотип и контакты -->
         <div class="space-y-4">
           <div class="flex items-start gap-3">
-            <div class="flex justify-center items-center bg-primary rounded-full w-10 h-10">
-              <Church class="w-6 h-6 text-white" />
+            <div class="flex justify-center items-center rounded-full w-16 h-16">
+              <img src="/images/logo.png" alt="Логотип Кирилло-Мефодиевского храма" class="w-auto h-auto" />
             </div>
             <div>
               <div class="font-serif text-primary text-lg mb-2">Кирилло-Мефодиевский храм</div>
@@ -18,15 +16,8 @@
               </div>
             </div>
           </div>
-          <div class="space-y-2 text-muted-foreground text-sm">
-            <div class="flex items-center gap-2">
-              <Phone class="w-4 h-4" />
-              <a :href="`tel:${phoneRaw}`" class="hover:text-primary transition-colors">{{ phone }}</a>
-            </div>
-          </div>
         </div>
 
-        <!-- Навигация -->
         <div>
           <h3 class="mb-4 font-serif">Навигация</h3>
           <ul class="space-y-2 text-sm">
@@ -34,52 +25,61 @@
               <NuxtLink to="/" class="text-muted-foreground hover:text-primary transition-colors">Главная</NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/about" class="text-muted-foreground hover:text-primary transition-colors">О храме</NuxtLink>
+              <NuxtLink to="/about" class="text-muted-foreground hover:text-primary transition-colors">О храме
+              </NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/schedule" class="text-muted-foreground hover:text-primary transition-colors">Расписание</NuxtLink>
+              <NuxtLink to="/schedule" class="text-muted-foreground hover:text-primary transition-colors">Расписание
+              </NuxtLink>
             </li>
             <li>
               <NuxtLink to="/news" class="text-muted-foreground hover:text-primary transition-colors">Новости</NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/announcements" class="text-muted-foreground hover:text-primary transition-colors">Анонсы</NuxtLink>
+              <NuxtLink to="/announcements" class="text-muted-foreground hover:text-primary transition-colors">Анонсы
+              </NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/donations" class="text-muted-foreground hover:text-primary transition-colors">Пожертвования</NuxtLink>
+              <NuxtLink to="/donations" class="text-muted-foreground hover:text-primary transition-colors">Пожертвования
+              </NuxtLink>
             </li>
           </ul>
         </div>
 
-        <!-- Полезные ссылки (динамические из WordPress) -->
         <div>
           <h3 class="mb-4 font-serif">Полезные ссылки</h3>
           <div v-if="usefulLinksList.length" class="space-y-2 text-sm">
             <a v-for="link in usefulLinksList" :key="link.label" :href="link.url"
-               class="block text-muted-foreground hover:text-primary transition-colors"
-               target="_blank" rel="noopener noreferrer">
+              class="block text-muted-foreground hover:text-primary transition-colors" target="_blank"
+              rel="noopener noreferrer">
               {{ link.label }}
             </a>
           </div>
           <div v-else class="text-muted-foreground text-sm">Нет ссылок</div>
         </div>
 
-        <!-- Социальные сети (теперь в отдельной колонке, без лишней обёртки Card) -->
         <div>
           <h3 class="mb-4 font-serif">Социальные сети прихода</h3>
           <div class="flex flex-wrap gap-3">
             <a v-if="vk" :href="vk" target="_blank" rel="noopener noreferrer"
-               class="inline-flex items-center gap-2 bg-[#0077FF] hover:bg-[#0066DD] px-4 py-2 rounded-lg text-white transition-colors text-sm">
+              class="inline-flex items-center gap-2 bg-[#0077FF] hover:bg-[#0066DD] px-4 py-2 rounded-lg text-white transition-colors text-sm">
               <span>ВКонтакте</span>
             </a>
             <a v-if="telegram" :href="telegram" target="_blank" rel="noopener noreferrer"
-               class="inline-flex items-center gap-2 bg-[#0077FF] hover:bg-[#0066DD] px-4 py-2 rounded-lg text-white transition-colors text-sm">
+              class="inline-flex items-center gap-2 bg-[#0077FF] hover:bg-[#0066DD] px-4 py-2 rounded-lg text-white transition-colors text-sm">
               <span>Telegram</span>
             </a>
             <a v-if="max" :href="max" target="_blank" rel="noopener noreferrer"
-               class="inline-flex items-center gap-2 bg-[#0077FF] hover:bg-[#0066DD] px-4 py-2 rounded-lg text-white transition-colors text-sm">
+              class="inline-flex items-center gap-2 bg-[#0077FF] hover:bg-[#0066DD] px-4 py-2 rounded-lg text-white transition-colors text-sm">
               <span>Max</span>
             </a>
+          </div>
+              <div class="space-y-2 text-muted-foreground text-sm mt-5">
+            <div class="flex items-center gap-2">
+              <Phone class="w-4 h-4" />
+              <p>Телефон:</p>
+              <a :href="`tel:${phoneRaw}`" class="hover:text-primary transition-colors">{{ phone }}</a>
+            </div>
           </div>
         </div>
       </div>
