@@ -10,7 +10,7 @@ export default defineNuxtConfig({
   // Переменные окружения для API WordPress
   runtimeConfig: {
     public: {
-      wpApi: process.env.WP_API_URL || 'http://localhost/church'
+      wpApi: process.env.WP_API_URL || 'https://admin.kirmefhram.ru'
     }
   },
   nitro: {

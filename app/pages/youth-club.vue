@@ -119,7 +119,7 @@ const formatText = (text: string): string => {
 
 const fetchYouthClub = async () => {
   try {
-    const res = await fetch('http://localhost/church/wp-json/wp/v2/youthclub')
+    const res = await fetch('https://admin.kirmefhram.ru/wp-json/wp/v2/youthclub')
     const data = await res.json()
 
     if (Array.isArray(data) && data.length > 0) {
