@@ -1,8 +1,15 @@
 <template>
   <div class="w-full">
-    <section class="relative flex justify-center items-center h-[600px] bg-gradient-to-br from-primary to-primary/80"
-      :style="bannerStyle">
-      <div class="px-4 text-white text-center">
+    <section
+      class="relative flex justify-center items-center h-[600px] bg-gradient-to-br from-primary to-primary/80 overflow-hidden">
+      <!-- Фоновое изображение с blur-анимацией -->
+      <img v-if="activeBanner" :src="activeBanner" alt="" @load="onBannerLoad"
+        class="absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-out"
+        :class="bannerImgClass" />
+      <div
+        class="absolute inset-0 bg-gradient-to-br from-primary/80 to-primary/60 transition-opacity duration-1000 ease-out"
+        :class="{ 'opacity-0': bannerLoaded, 'opacity-100': !bannerLoaded }"></div>
+      <div class="relative z-10 px-4 text-white text-center">
         <h2 class="mb-4 text-5xl md:text-6xl lg:text-6xl">
           Кирилло-Мефодиевский храм города Балашихи
         </h2>
@@ -60,13 +67,53 @@
       </div>
     </section>
 
+    <!-- Новости -->
+    <section class="mx-auto px-4 lg:px-8 py-16 container">
+      <h2 class="mb-8 text-primary text-4xl text-center">Последние новости</h2>
+      <div v-if="latestNews.length" class="gap-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 mx-auto mb-8 max-w-5xl">
+        <Card v-for="news in latestNews" :key="news.id"
+          class="group flex flex-col hover:shadow-xl h-full overflow-hidden transition-shadow">
+          <div class="bg-muted aspect-video overflow-hidden">
+            <img :src="news.image || '/images/question.png'" :alt="news.title"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              @error="(e) => (e.target.src = '/images/question.png')" />
+          </div>
+          <div class="flex flex-col flex-1 p-6">
+            <div class="flex items-center gap-2 mb-3 text-muted-foreground text-sm">
+              <Calendar class="w-4 h-4" />
+              <span>{{ formatDate(news.date) }}</span>
+            </div>
+            <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">
+              {{ news.title }}
+            </h3>
+            <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">
+              {{ stripHtml(news.excerpt || news.content) }}
+            </p>
+            <NuxtLink :to="`/news/${news.id}`"
+              class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
+              Читать полностью
+              <ArrowRight class="w-4 h-4" />
+            </NuxtLink>
+          </div>
+        </Card>
+      </div>
+      <div v-else class="text-center text-muted-foreground">
+        Нет новостей
+      </div>
+      <div class="text-center">
+        <NuxtLink to="/news">
+          <Button variant="outline" class="gap-2">
+            Все новости
+            <ArrowRight class="w-4 h-4" />
+          </Button>
+        </NuxtLink>
+      </div>
+    </section>
+
     <!-- О храме -->
-    <section class="py-16">
+    <section class="py-16 border-border border-t">
       <div class="mx-auto px-4 lg:px-8 container">
         <div class="mx-auto max-w-3xl text-center">
-          <div class="inline-flex justify-center items-center bg-primary/10 mb-6 rounded-full w-16 h-16">
-            <Church class="w-8 h-8 text-primary" />
-          </div>
           <h2 class="mb-6 text-primary text-4xl">О храме</h2>
           <p class="mb-6 text-muted-foreground text-lg leading-relaxed">
             Кирилло-Мефодиевский храм расположен в микрорайоне Железнодорожный города
@@ -111,7 +158,7 @@
           <div class="bg-muted aspect-video overflow-hidden">
             <img v-if="announcement.image" :src="announcement.image" :alt="announcement.title"
               class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              @error="(e) => e.target.src = '/images/question.png'" />
+              @error="(e) => (e.target.src = '/images/question.png')" />
             <div v-else class="flex justify-center items-center bg-gray-200 w-full h-full">
               <span class="text-gray-400 text-sm">Нет изображения</span>
             </div>
@@ -147,54 +194,11 @@
         </NuxtLink>
       </div>
     </section>
-
-    <!-- Новости -->
-    <section class="mx-auto px-4 lg:px-8 py-16 container">
-      <h2 class="mb-8 text-primary text-4xl text-center">Последние новости</h2>
-      <div v-if="latestNews.length" class="gap-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 mx-auto mb-8 max-w-5xl">
-        <Card v-for="news in latestNews" :key="news.id"
-          class="group flex flex-col hover:shadow-xl h-full overflow-hidden transition-shadow">
-          <div class="bg-muted aspect-video overflow-hidden">
-            <img :src="news.image || '/images/question.png'" :alt="news.title"
-              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              @error="(e) => e.target.src = '/images/question.png'" />
-          </div>
-          <div class="flex flex-col flex-1 p-6">
-            <div class="flex items-center gap-2 mb-3 text-muted-foreground text-sm">
-              <Calendar class="w-4 h-4" />
-              <span>{{ formatDate(news.date) }}</span>
-            </div>
-            <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">
-              {{ news.title }}
-            </h3>
-            <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">
-              {{ stripHtml(news.excerpt || news.content) }}
-            </p>
-            <NuxtLink :to="`/news/${news.id}`"
-              class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
-              Читать полностью
-              <ArrowRight class="w-4 h-4" />
-            </NuxtLink>
-          </div>
-        </Card>
-      </div>
-      <div v-else class="text-center text-muted-foreground">
-        Нет новостей
-      </div>
-      <div class="text-center">
-        <NuxtLink to="/news">
-          <Button variant="outline" class="gap-2">
-            Все новости
-            <ArrowRight class="w-4 h-4" />
-          </Button>
-        </NuxtLink>
-      </div>
-    </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { Church, ArrowRight, Calendar } from 'lucide-vue-next'
 import Button from '~/components/ui/Button.vue'
 import Card from '~/components/ui/Card.vue'
@@ -202,7 +206,8 @@ import { useContentStore } from '~/stores/content'
 
 useSeoMeta({
   title: 'Кирилло-Мефодиевский храм Балашихи | Официальный сайт',
-  description: 'Официальный сайт Кирилло-Мефодиевского храма в микрорайоне Железнодорожный города Балашиха. Расписание богослужений, новости прихода, воскресная школа, анонсы. Балашихинская епархия Русской Православной Церкви.',
+  description:
+    'Официальный сайт Кирилло-Мефодиевского храма в микрорайоне Железнодорожный города Балашиха. Расписание богослужений, новости прихода, воскресная школа, анонсы. Балашихинская епархия Русской Православной Церкви.',
   ogTitle: 'Кирилло-Мефодиевский храм Балашихи',
   ogDescription: 'Расписание богослужений, новости, анонсы Кирилло-Мефодиевского храма в Балашихе',
   ogImage: '/images/home.jpg',
@@ -219,22 +224,26 @@ await callOnce('main-schedule', () => store.fetchSchedule())
 const bannerImages = ref<string[]>([])
 const currentBannerIndex = ref(0)
 const bannersLoaded = ref(false)
+const bannerLoaded = ref(false) // для анимации blur
 
 const activeBanner = computed(() => {
   if (!bannersLoaded.value || bannerImages.value.length === 0) return ''
   return bannerImages.value[currentBannerIndex.value] || bannerImages.value[0] || ''
 })
 
-const bannerStyle = computed(() => {
-  if (activeBanner.value) {
-    return {
-      backgroundImage: `linear-gradient(rgba(26, 58, 92, 0.4), rgba(26, 58, 92, 0.6)), url(${activeBanner.value})`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center'
-    }
-  }
-  return {}
+const bannerImgClass = computed(() => {
+  return bannerLoaded.value ? 'blur-0' : 'blur-xl'
 })
+
+function onBannerLoad() {
+  bannerLoaded.value = true
+}
+
+watch(currentBannerIndex, () => {
+  bannerLoaded.value = false
+})
+
+
 
 let rotationTimer: ReturnType<typeof setInterval> | null = null
 
@@ -264,7 +273,7 @@ const startRotation = () => {
     if (bannerImages.value.length > 1) {
       currentBannerIndex.value = (currentBannerIndex.value + 1) % bannerImages.value.length
     }
-  }, 3600000)
+  }, 60000)
 }
 
 onMounted(() => {

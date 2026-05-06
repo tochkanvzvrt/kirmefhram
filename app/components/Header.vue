@@ -1,6 +1,6 @@
 <template>
   <header class="top-0 z-50 sticky bg-white/95 shadow-sm backdrop-blur-sm border-border border-b">
-    <div class="mx-auto px-4 lg:px-8 container">
+    <div class="mx-auto px-4 lg:px-8 max-w-[1400px] xl:max-w-[1600px]">
       <div class="flex justify-between items-center h-20">
         <!-- Logo -->
         <NuxtLink to="/" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
