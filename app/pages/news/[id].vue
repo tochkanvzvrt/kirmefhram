@@ -15,7 +15,7 @@
       </div>
     </section>
 
-    <!-- Контент с возможными inline-галереями -->
+    <!-- Контент с автоматической заменой wp-block-gallery на слайдеры -->
     <section class="mx-auto px-4 lg:px-8 py-16 max-w-4xl container">
       <div v-html="processedContent" class="wp-content widget-gallery-zone"></div>
 
@@ -34,17 +34,20 @@
 import { ref, computed, onMounted } from 'vue'
 import { ArrowLeft } from 'lucide-vue-next'
 import { useRuntimeConfig } from '#app'
+import { decode } from 'html-entities'
 
 const route = useRoute()
 const config = useRuntimeConfig()
 const wpBase = config.public.wpApi
 const newsId = route.params.id
 
+// Простая очистка HTML для мета-описания
 const stripHtml = (html: string): string => {
   if (!html) return ''
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
+// Загрузка новости
 const { data: articleData, error } = await useFetch(
   `${wpBase}/wp-json/wp/v2/new/${newsId}?_embed=true`
 )
@@ -53,11 +56,13 @@ if (error.value || !articleData.value) {
   throw createError({ statusCode: 404, message: 'Новость не найдена' })
 }
 
+// Формируем данные статьи, декодируем заголовок
 const article = computed(() => {
   const item = articleData.value as any
+  const rawTitle = item.title?.rendered || 'Без названия'
   return {
     id: item.id,
-    title: item.title?.rendered || 'Без названия',
+    title: decode(rawTitle), // ← HTML-сущности превращаются в обычные символы
     content: item.content?.rendered || '',
     date: item.date || '',
     categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
@@ -84,7 +89,7 @@ const fullUrl = computed(() => {
   return `${baseUrl}/news/${newsId}`
 })
 
-// --- Обработка контента с заменой галерей на контейнеры для Vue ---
+// --- Обработка wp-block-gallery (с учётом вложенных <figure>) ---
 const galleryCounter = ref(0)
 const galleriesData = ref<{ id: number; images: string[] }[]>([])
 
@@ -93,45 +98,71 @@ const processedContent = computed(() => {
   galleriesData.value = []
   galleryCounter.value = 0
 
-  // Ищем все <figure class="wp-block-gallery...">
-  const regex = /<figure class="wp-block-gallery[^>]*>([\s\S]*?)<\/figure>/g
+  // Ищем открывающий тег внешней галереи
+  const galleryStartRegex = /<figure class="wp-block-gallery[^>]*>/g
   let match
-  while ((match = regex.exec(html)) !== null) {
-    const galleryBlock = match[0]
-    const galleryContent = match[1]
-    
-    // Извлекаем все src изображений внутри этого блока
+  while ((match = galleryStartRegex.exec(html)) !== null) {
+    const startIndex = match.index
+    const startTag = match[0]
+
+    // Ищем соответствующий закрывающий </figure> с учётом вложенности
+    let depth = 1
+    let searchPos = startIndex + startTag.length
+    let endIndex = -1
+    while (depth > 0 && searchPos < html.length) {
+      const nextOpen = html.indexOf('<figure', searchPos)
+      const nextClose = html.indexOf('</figure>', searchPos)
+      if (nextClose === -1) break
+      if (nextOpen !== -1 && nextOpen < nextClose) {
+        depth++
+        searchPos = nextOpen + '<figure'.length
+      } else {
+        depth--
+        if (depth === 0) {
+          endIndex = nextClose + '</figure>'.length
+          break
+        }
+        searchPos = nextClose + '</figure>'.length
+      }
+    }
+    if (endIndex === -1) continue
+
+    // Извлекаем весь блок галереи и его содержимое (без внешнего <figure>)
+    const galleryBlock = html.substring(startIndex, endIndex)
+    const galleryContent = html.substring(startIndex + startTag.length, endIndex - '</figure>'.length)
+
+    // Собираем все src изображений внутри
     const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/g
     const urls: string[] = []
     let imgMatch
     while ((imgMatch = imgRegex.exec(galleryContent)) !== null) {
       urls.push(imgMatch[1])
     }
-    
-    // Сохраняем данные для Vue-слайдера
-    galleriesData.value.push({ id: galleryCounter.value, images: urls })
-    
-    // Заменяем исходный блок на контейнер, который Vue захватит при монтировании
-    const placeholder = `<div class="vue-gallery" data-gallery-id="${galleryCounter.value}"></div>`
-    html = html.replace(galleryBlock, placeholder)
-    
-    galleryCounter.value++
+
+    if (urls.length > 0) {
+      galleriesData.value.push({ id: galleryCounter.value, images: urls })
+      const placeholder = `<div class="vue-gallery" data-gallery-id="${galleryCounter.value}"></div>`
+      // Заменяем оригинальный блок галереи на placeholder
+      html = html.substring(0, startIndex) + placeholder + html.substring(endIndex)
+      galleryCounter.value++
+      // Сброс поиска, чтобы корректно обработать оставшиеся галереи
+      galleryStartRegex.lastIndex = 0
+    }
   }
 
   return html
 })
 
-// После монтирования рендерим слайдеры в подготовленные контейнеры
+// После монтирования заменяем placeholder'ы реальными слайдерами
 onMounted(() => {
   document.querySelectorAll('.vue-gallery').forEach((el) => {
-    const id = parseInt(el.getAttribute('data-gallery-id') || '0', 10)
-    const gallery = galleriesData.value.find(g => g.id === id)
+    const galleryId = parseInt(el.getAttribute('data-gallery-id') || '0', 10)
+    const gallery = galleriesData.value.find(g => g.id === galleryId)
     if (!gallery || gallery.images.length === 0) return
-    
-    // Создаём слайдер средствами DOM (можно заменить на Vue-компонент, но так проще)
+
     const wrapper = document.createElement('div')
     wrapper.className = 'gallery-slider'
-    
+
     const track = document.createElement('div')
     track.className = 'slider-track'
     gallery.images.forEach((src) => {
@@ -141,26 +172,25 @@ onMounted(() => {
       img.loading = 'lazy'
       track.appendChild(img)
     })
-    
-    // Кнопки
+
     const leftBtn = document.createElement('button')
     leftBtn.className = 'slider-btn left'
     leftBtn.innerHTML = '‹'
     leftBtn.onclick = () => {
       track.scrollBy({ left: -track.clientWidth, behavior: 'smooth' })
     }
-    
+
     const rightBtn = document.createElement('button')
     rightBtn.className = 'slider-btn right'
     rightBtn.innerHTML = '›'
     rightBtn.onclick = () => {
       track.scrollBy({ left: track.clientWidth, behavior: 'smooth' })
     }
-    
+
     wrapper.appendChild(leftBtn)
     wrapper.appendChild(track)
     wrapper.appendChild(rightBtn)
-    
+
     el.replaceWith(wrapper)
   })
 })
@@ -180,7 +210,7 @@ useHead({
 </script>
 
 <style scoped>
-/* ======= БАЗОВЫЕ СТИЛИ КОНТЕНТА ======= */
+/* ======= Базовые стили контента ======= */
 .wp-content {
   font-size: 1.125rem;
   line-height: 1.7;
@@ -265,7 +295,6 @@ useHead({
   margin: 1.5em 0;
 }
 
-/* Фигуры */
 .wp-content :deep(figure.aligncenter) {
   display: flex;
   flex-direction: column;
@@ -315,8 +344,7 @@ useHead({
   font-weight: 600;
 }
 
-/* ======= СТИЛИ СЛАЙДЕРА (добавляются глобально, но scoped-стиль их не затронет -> используем в onMounted inline или добавим сюда на :deep) ======= */
-/* Так как слайдеры вставляются нативно, пропишем стили через :deep на контейнере */
+/* ======= Стили слайдера ======= */
 .widget-gallery-zone :deep(.gallery-slider) {
   position: relative;
   display: flex;
