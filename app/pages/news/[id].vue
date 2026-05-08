@@ -15,10 +15,12 @@
       </div>
     </section>
 
-    <!-- Контент -->
+    <!-- Контент с автоматической вставкой слайдеров на места галерей -->
     <section class="mx-auto px-4 lg:px-8 py-16 max-w-4xl container">
-      <GallerySlider v-if="galleryImages.length" :images="galleryImages" />
-      <div v-html="textWithoutGallery" class="wp-content"></div>
+      <template v-for="(part, index) in contentParts" :key="index">
+        <div v-if="part.type === 'html'" v-html="part.content" class="wp-content"></div>
+        <GallerySlider v-else-if="part.type === 'gallery'" :images="part.images" />
+      </template>
 
       <div class="mt-12 pt-8 border-border border-t">
         <NuxtLink to="/news"
@@ -88,24 +90,112 @@ const fullUrl = computed(() => {
   return `${baseUrl}/news/${newsId}`
 })
 
-const galleryImages = computed(() => {
+// --------------------------------------------------
+// Извлечение галерей и разбивка контента на части
+// --------------------------------------------------
+const galleries = computed(() => {
   const content = article.value.content
   if (!content) return []
-  
-  const match = content.match(/<figure class="wp-block-gallery[^>]*>([\s\S]*?)<\/figure>/)
-  if (!match) return []
-  
-  const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/g
-  const urls: string[] = []
-  let m
-  while ((m = imgRegex.exec(match[1])) !== null) {
-    urls.push(m[1])
+
+  const startRegex = /<figure class="wp-block-gallery[^>]*>/g
+  let startMatch
+  const result: { images: string[] }[] = []
+
+  while ((startMatch = startRegex.exec(content)) !== null) {
+    const startIndex = startMatch.index
+    const startTag = startMatch[0]
+    let depth = 1
+    let searchPos = startIndex + startTag.length
+    let endIndex = -1
+    while (depth > 0 && searchPos < content.length) {
+      const nextOpen = content.indexOf('<figure', searchPos)
+      const nextClose = content.indexOf('</figure>', searchPos)
+      if (nextClose === -1) break
+      if (nextOpen !== -1 && nextOpen < nextClose) {
+        depth++
+        searchPos = nextOpen + '<figure'.length
+      } else {
+        depth--
+        if (depth === 0) {
+          endIndex = nextClose + '</figure>'.length
+          break
+        }
+        searchPos = nextClose + '</figure>'.length
+      }
+    }
+    if (endIndex === -1) continue
+
+    const galleryContent = content.substring(startIndex + startTag.length, endIndex - '</figure>'.length)
+    const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/g
+    const urls: string[] = []
+    let imgMatch
+    while ((imgMatch = imgRegex.exec(galleryContent)) !== null) {
+      urls.push(imgMatch[1])
+    }
+    result.push({ images: urls })
   }
-  return urls
+
+  return result
 })
 
-const textWithoutGallery = computed(() => {
-  return article.value.content.replace(/<figure class="wp-block-gallery[^>]*>[\s\S]*?<\/figure>/g, '')
+const contentParts = computed(() => {
+  let html = article.value.content
+  const parts: { type: 'html' | 'gallery'; content?: string; images?: string[] }[] = []
+  const startRegex = /<figure class="wp-block-gallery[^>]*>/g
+  let startMatch
+  let lastIndex = 0
+  let galleryIdx = 0
+
+  while ((startMatch = startRegex.exec(html)) !== null) {
+    const startIndex = startMatch.index
+    const startTag = startMatch[0]
+    let depth = 1
+    let searchPos = startIndex + startTag.length
+    let endIndex = -1
+    while (depth > 0 && searchPos < html.length) {
+      const nextOpen = html.indexOf('<figure', searchPos)
+      const nextClose = html.indexOf('</figure>', searchPos)
+      if (nextClose === -1) break
+      if (nextOpen !== -1 && nextOpen < nextClose) {
+        depth++
+        searchPos = nextOpen + '<figure'.length
+      } else {
+        depth--
+        if (depth === 0) {
+          endIndex = nextClose + '</figure>'.length
+          break
+        }
+        searchPos = nextClose + '</figure>'.length
+      }
+    }
+    if (endIndex === -1) continue
+
+    // Текст до текущей галереи
+    if (startIndex > lastIndex) {
+      const textBefore = html.substring(lastIndex, startIndex)
+      if (textBefore.trim()) {
+        parts.push({ type: 'html', content: textBefore })
+      }
+    }
+
+    // Сама галерея
+    if (galleries.value[galleryIdx]) {
+      parts.push({ type: 'gallery', images: galleries.value[galleryIdx].images })
+    }
+
+    lastIndex = endIndex
+    galleryIdx++
+  }
+
+  // Оставшийся текст после последней галереи
+  if (lastIndex < html.length) {
+    const textAfter = html.substring(lastIndex)
+    if (textAfter.trim()) {
+      parts.push({ type: 'html', content: textAfter })
+    }
+  }
+
+  return parts
 })
 
 useHead({
@@ -122,6 +212,7 @@ useHead({
 </script>
 
 <style scoped>
+/* ======= Базовые стили контента ======= */
 .wp-content {
   font-size: 1.125rem;
   line-height: 1.7;
@@ -177,6 +268,7 @@ useHead({
   border-radius: 0.5rem;
 }
 
+/* Выравнивание */
 .wp-content :deep(.aligncenter) {
   text-align: center;
   display: block;
@@ -254,6 +346,7 @@ useHead({
   font-weight: 600;
 }
 
+/* Адаптив */
 @media (max-width: 768px) {
   .wp-content :deep(.alignleft),
   .wp-content :deep(.alignright),
