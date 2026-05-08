@@ -1,9 +1,10 @@
 <template>
   <div class="w-full">
-    <!-- Hero с заголовком и датой -->
     <section class="bg-gradient-to-br from-primary to-primary/80 py-20 text-white">
       <div class="mx-auto px-4 lg:px-8 text-center container">
-        <h1 class="mb-4 font-serif text-5xl md:text-6xl">{{ article.title }}</h1>
+        <h1 class="mb-4 font-serif text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl break-words">
+          {{ article.title }}
+        </h1>
         <div class="flex justify-center gap-4 text-white/80 text-sm md:text-base">
           <span>{{ formatDate(article.date) }}</span>
           <span v-if="article.categories.length">
@@ -14,7 +15,19 @@
     </section>
 
     <section class="mx-auto px-4 lg:px-8 py-16 max-w-4xl container">
-      <div v-html="article.content" class="wp-content"></div>
+      <template v-if="isGallery">
+        <div v-if="galleryImages.length" class="gallery-slider">
+          <button class="slider-btn left" @click="scrollGallery(-1)" :disabled="currentSlide === 0">‹</button>
+          <div class="slider-track" ref="sliderTrack">
+            <img v-for="(img, i) in galleryImages" :key="i" :src="img" :alt="`Фото ${i + 1}`" class="slider-img"
+              loading="lazy" />
+          </div>
+          <button class="slider-btn right" @click="scrollGallery(1)"
+            :disabled="currentSlide >= galleryImages.length - 1">›</button>
+        </div>
+        <div v-if="textOnlyContent" v-html="textOnlyContent" class="wp-content"></div>
+      </template>
+      <div v-else v-html="article.content" class="wp-content"></div>
 
       <div class="mt-12 pt-8 border-border border-t">
         <NuxtLink to="/news" class="inline-flex items-center gap-2 text-primary hover:underline transition-colors">
@@ -27,6 +40,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
 import { ArrowLeft } from 'lucide-vue-next'
 import { useRuntimeConfig } from '#app'
 
@@ -75,10 +89,45 @@ const formatDate = (dateStr: string) => {
 }
 
 const fullUrl = computed(() => {
-  const baseUrl = process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  const baseUrl = process.env.NUXT_PUBLIC_SITE_URL || 'https://kirmefhram.ru'
   return `${baseUrl}/news/${newsId}`
 })
 
+// --- Галерея ---
+const isGallery = computed(() => {
+  return article.value.categories.some(
+    cat => cat.slug === 'gallery' || cat.name.toLowerCase() === 'галерея'
+  )
+})
+
+const galleryImages = computed(() => {
+  if (!isGallery.value || !article.value.content) return []
+  const regex = /<img[^>]+src=["']([^"']+)["'][^>]*>/g
+  const urls: string[] = []
+  let match
+  while ((match = regex.exec(article.value.content)) !== null) {
+    urls.push(match[1])
+  }
+  return urls
+})
+
+const textOnlyContent = computed(() => {
+  if (!isGallery.value) return ''
+  return article.value.content.replace(/<img[^>]*>/g, '')
+})
+
+const sliderTrack = ref<HTMLElement | null>(null)
+const currentSlide = ref(0)
+
+const scrollGallery = (dir: number) => {
+  if (!sliderTrack.value) return
+  const step = sliderTrack.value.clientWidth
+  const newIndex = Math.max(0, Math.min(currentSlide.value + dir, galleryImages.value.length - 1))
+  currentSlide.value = newIndex
+  sliderTrack.value.scrollTo({ left: step * newIndex, behavior: 'smooth' })
+}
+
+// SEO
 useHead({
   title: article.value.title,
   meta: [
@@ -129,6 +178,14 @@ useHead({
 
 .wp-content :deep(h4) {
   font-size: 1.25rem;
+}
+
+.wp-content :deep(h5) {
+  font-size: 1rem;
+}
+
+.wp-content :deep(h6) {
+  font-size: 0.875rem;
 }
 
 .wp-content :deep(strong),
@@ -234,6 +291,70 @@ useHead({
   font-weight: 600;
 }
 
+/* ======= СЛАЙДЕР ГАЛЕРЕИ ======= */
+.gallery-slider {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin: 2rem 0;
+  background: #f8fafc;
+  border-radius: 1rem;
+  padding: 1rem;
+}
+
+.slider-track {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  flex: 1;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.slider-track::-webkit-scrollbar {
+  display: none;
+}
+
+.slider-img {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+  width: 100%;
+  max-height: 500px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.slider-btn {
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  font-size: 2rem;
+  padding: 0.2em 0.4em;
+  cursor: pointer;
+  border-radius: 50%;
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  transform: translateY(-50%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  color: #333;
+}
+
+.slider-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.slider-btn.left {
+  left: 10px;
+}
+
+.slider-btn.right {
+  right: 10px;
+}
+
 @media (max-width: 768px) {
 
   .wp-content :deep(.alignleft),
@@ -243,6 +364,11 @@ useHead({
     float: none;
     display: block;
     margin: 1em auto;
+  }
+
+  .slider-btn {
+    font-size: 1.5rem;
+    padding: 0.1em 0.3em;
   }
 }
 </style>

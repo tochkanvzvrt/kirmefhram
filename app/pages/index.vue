@@ -35,9 +35,12 @@
     <!-- Расписание -->
     <section class="mx-auto px-4 lg:px-8 py-16 container">
       <h2 class="mb-8 text-green-700 text-4xl text-center">Расписание богослужений</h2>
-      <div v-if="upcomingSchedule.length" class="gap-6 grid grid-cols-1 md:grid-cols-3 mb-8">
+
+      <!-- Десктоп: стандартная сетка -->
+      <div v-if="upcomingSchedule.length" class="hidden md:grid gap-6 grid-cols-3 mb-8">
         <Card v-for="(item, index) in upcomingSchedule" :key="index"
           class="transition-shadow hover:shadow-lg p-6 border-2 hover:border-accent cursor-pointer">
+          <!-- содержимое карточки -->
           <div class="flex justify-between items-start mb-4">
             <div>
               <div class="font-serif text-primary text-4xl">{{ item.date }}</div>
@@ -54,10 +57,59 @@
           </div>
         </Card>
       </div>
+
+      <!-- Мобильный слайдер (показывается только на < md) -->
+      <div v-if="upcomingSchedule.length" class="md:hidden relative">
+        <div class="flex items-center">
+          <button @click="scrollSchedule(-1)" :disabled="scheduleSlideIndex <= 0"
+            class="absolute left-0 z-10 bg-white/80 rounded-full p-2 shadow-md disabled:opacity-30 transition-opacity">
+            <ChevronLeft class="w-5 h-5 text-primary" />
+          </button>
+
+          <div ref="scheduleSlider"
+            class="flex overflow-x-auto gap-4 scroll-smooth snap-x snap-mandatory scrollbar-hide px-2"
+            style="scrollbar-width: none; -ms-overflow-style: none;">
+            <div v-for="(item, index) in upcomingSchedule" :key="index"
+              class="snap-center flex-shrink-0 w-[85vw] max-w-[380px]">
+              <Card class="transition-shadow hover:shadow-lg p-6 border-2 hover:border-accent cursor-pointer h-full">
+                <!-- содержимое такое же -->
+                <div class="flex justify-between items-start mb-4">
+                  <div>
+                    <div class="font-serif text-primary text-4xl">{{ item.date }}</div>
+                    <div class="text-muted-foreground text-sm">{{ item.month }}</div>
+                  </div>
+                  <div class="bg-accent/10 px-3 py-1 rounded-full font-medium text-accent text-sm">
+                    {{ item.day }}
+                  </div>
+                </div>
+                <div v-if="item.liturgical" class="liturgical-day schedule-text" v-html="item.liturgical"></div>
+                <div v-if="item.services" class="services-time schedule-text" v-html="item.services"></div>
+                <div v-if="!item.liturgical && !item.services" class="text-muted-foreground text-sm">
+                  Нет информации
+                </div>
+              </Card>
+            </div>
+          </div>
+
+          <button @click="scrollSchedule(1)" :disabled="scheduleSlideIndex >= upcomingSchedule.length - 1"
+            class="absolute right-0 z-10 bg-white/80 rounded-full p-2 shadow-md disabled:opacity-30 transition-opacity">
+            <ChevronRight class="w-5 h-5 text-primary" />
+          </button>
+        </div>
+
+        <!-- Точки-индикаторы -->
+        <div class="flex justify-center gap-2 mt-4">
+          <span v-for="(item, idx) in upcomingSchedule" :key="idx"
+            class="w-2 h-2 rounded-full transition-all duration-300"
+            :class="idx === scheduleSlideIndex ? 'bg-primary w-4' : 'bg-primary/30'"></span>
+        </div>
+      </div>
+
       <div v-else class="text-center text-muted-foreground">
         Нет ближайших богослужений
       </div>
-      <div class="text-center">
+
+      <div class="text-center mt-8">
         <NuxtLink to="/schedule">
           <Button variant="outline" class="gap-2">
             Все расписание на месяц
@@ -203,6 +255,7 @@ import { Church, ArrowRight, Calendar } from 'lucide-vue-next'
 import Button from '~/components/ui/Button.vue'
 import Card from '~/components/ui/Card.vue'
 import { useContentStore } from '~/stores/content'
+import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 
 useSeoMeta({
   title: 'Кирилло-Мефодиевский храм Балашихи | Официальный сайт',
@@ -224,7 +277,11 @@ await callOnce('main-schedule', () => store.fetchSchedule())
 const bannerImages = ref<string[]>([])
 const currentBannerIndex = ref(0)
 const bannersLoaded = ref(false)
-const bannerLoaded = ref(false) // для анимации blur
+const bannerLoaded = ref(false)
+
+//Слайдер
+const scheduleSlider = ref<HTMLElement | null>(null)
+const scheduleSlideIndex = ref(0)
 
 const activeBanner = computed(() => {
   if (!bannersLoaded.value || bannerImages.value.length === 0) return ''
@@ -242,6 +299,16 @@ function onBannerLoad() {
 watch(currentBannerIndex, () => {
   bannerLoaded.value = false
 })
+
+function scrollSchedule(dir: number) {
+  if (!scheduleSlider.value) return
+  const slides = scheduleSlider.value.children as HTMLCollectionOf<HTMLElement>
+  let newIndex = scheduleSlideIndex.value + dir
+  if (newIndex < 0) newIndex = 0
+  if (newIndex >= slides.length) newIndex = slides.length - 1
+  scheduleSlideIndex.value = newIndex
+  slides[newIndex]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' })
+}
 
 
 
@@ -375,5 +442,14 @@ const stripHtml = (html: string): string => {
 
 .services-time :deep(p) {
   margin: 0.5rem 0;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 </style>
