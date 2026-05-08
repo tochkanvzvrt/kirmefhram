@@ -101,6 +101,7 @@ import { GraduationCap, Clock, Users, Calendar, ArrowRight, BookOpen } from 'luc
 import Card from '~/components/ui/Card.vue'
 import Badge from '~/components/ui/Badge.vue'
 import { useContentStore } from '~/stores/content'
+import { decode } from 'html-entities'
 
 const store = useContentStore()
 const loading = ref(true)
@@ -174,8 +175,8 @@ const sundaySchoolAnnouncements = computed(() => {
 })
 
 const sundaySchoolItems = computed(() => {
-  const news = sundaySchoolNews.value.map(item => ({ ...item, type: 'news' }))
-  const announcements = sundaySchoolAnnouncements.value.map(item => ({ ...item, type: 'announcement' }))
+  const news = sundaySchoolNews.value.map(item => ({ ...item, type: 'news', title: decode(item.title || '') }))
+  const announcements = sundaySchoolAnnouncements.value.map(item => ({ ...item, type: 'announcement', title: decode(item.title || '') }))
 
   return [...news, ...announcements]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -196,6 +197,4 @@ const stripHtml = (html: string): string => {
   if (!html) return ''
   return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
 }
-
-
 </script>

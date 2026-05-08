@@ -101,6 +101,7 @@ import { Users, Heart, Calendar, Clock, MapPin, ArrowRight } from 'lucide-vue-ne
 import Card from '~/components/ui/Card.vue'
 import Badge from '~/components/ui/Badge.vue'
 import { useContentStore } from '~/stores/content'
+import { decode } from 'html-entities'
 
 const store = useContentStore()
 const loading = ref(true)
@@ -112,9 +113,9 @@ const joinText = ref<string>('')
 const formatText = (text: string): string => {
   if (!text) return ''
   return text
-    .replace(/\r\n/g, '<br>')  // возврат каретки + перенос
-    .replace(/\n/g, '<br>')    // одиночный перенос
-    .replace(/\t/g, '&nbsp;&nbsp;') // табы → несколько пробелов
+    .replace(/\r\n/g, '<br>')
+    .replace(/\n/g, '<br>')
+    .replace(/\t/g, '&nbsp;&nbsp;')
 }
 
 const fetchYouthClub = async () => {
@@ -176,8 +177,8 @@ const youthClubAnnouncements = computed(() => {
 })
 
 const youthClubItems = computed(() => {
-  const news = youthClubNews.value.map(item => ({ ...item, type: 'news' }))
-  const announcements = youthClubAnnouncements.value.map(item => ({ ...item, type: 'announcement' }))
+  const news = youthClubNews.value.map(item => ({ ...item, type: 'news', title: decode(item.title || '') }))
+  const announcements = youthClubAnnouncements.value.map(item => ({ ...item, type: 'announcement', title: decode(item.title || '') }))
 
   return [...news, ...announcements]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -196,9 +197,7 @@ const formatDate = (dateStr: string): string => {
 
 const stripHtml = (html: string): string => {
   if (!html) return ''
-  const div = document.createElement('div')
-  div.innerHTML = html
-  return div.textContent || div.innerText || ''
+  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
 }
 
 const activities = [

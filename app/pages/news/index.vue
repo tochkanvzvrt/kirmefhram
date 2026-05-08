@@ -80,6 +80,7 @@ import { Newspaper, Calendar, ArrowRight } from 'lucide-vue-next'
 import Card from '~/components/ui/Card.vue'
 import Badge from '~/components/ui/Badge.vue'
 import { useContentStore } from '~/stores/content'
+import { decode } from 'html-entities'
 
 const store = useContentStore()
 const error = ref(false)
@@ -117,7 +118,10 @@ const filteredNews = computed(() => {
       article.categories.some(cat => cat.id === selectedCategory.value)
     )
   }
-  return news
+  return news.map(item => ({
+    ...item,
+    title: decode(item.title || '')
+  }))
 })
 
 const formatDate = (dateStr: string) => {

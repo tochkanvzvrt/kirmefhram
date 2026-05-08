@@ -15,9 +15,10 @@
       </div>
     </section>
 
-    <!-- Контент с автоматической заменой wp-block-gallery на слайдеры -->
+    <!-- Контент -->
     <section class="mx-auto px-4 lg:px-8 py-16 max-w-4xl container">
-      <div v-html="processedContent" class="wp-content widget-gallery-zone"></div>
+      <GallerySlider v-if="galleryImages.length" :images="galleryImages" />
+      <div v-html="textWithoutGallery" class="wp-content"></div>
 
       <div class="mt-12 pt-8 border-border border-t">
         <NuxtLink to="/news"
@@ -31,23 +32,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed } from 'vue'
 import { ArrowLeft } from 'lucide-vue-next'
 import { useRuntimeConfig } from '#app'
 import { decode } from 'html-entities'
+import GallerySlider from '~/components/GallerySlider.vue'
 
 const route = useRoute()
 const config = useRuntimeConfig()
 const wpBase = config.public.wpApi
 const newsId = route.params.id
 
-// Простая очистка HTML для мета-описания
 const stripHtml = (html: string): string => {
   if (!html) return ''
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-// Загрузка новости
 const { data: articleData, error } = await useFetch(
   `${wpBase}/wp-json/wp/v2/new/${newsId}?_embed=true`
 )
@@ -56,13 +56,12 @@ if (error.value || !articleData.value) {
   throw createError({ statusCode: 404, message: 'Новость не найдена' })
 }
 
-// Формируем данные статьи, декодируем заголовок
 const article = computed(() => {
   const item = articleData.value as any
   const rawTitle = item.title?.rendered || 'Без названия'
   return {
     id: item.id,
-    title: decode(rawTitle), // ← HTML-сущности превращаются в обычные символы
+    title: decode(rawTitle),
     content: item.content?.rendered || '',
     date: item.date || '',
     categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
@@ -89,113 +88,26 @@ const fullUrl = computed(() => {
   return `${baseUrl}/news/${newsId}`
 })
 
-// --- Обработка wp-block-gallery (с учётом вложенных <figure>) ---
-const galleryCounter = ref(0)
-const galleriesData = ref<{ id: number; images: string[] }[]>([])
-
-const processedContent = computed(() => {
-  let html = article.value.content
-  galleriesData.value = []
-  galleryCounter.value = 0
-
-  // Ищем открывающий тег внешней галереи
-  const galleryStartRegex = /<figure class="wp-block-gallery[^>]*>/g
-  let match
-  while ((match = galleryStartRegex.exec(html)) !== null) {
-    const startIndex = match.index
-    const startTag = match[0]
-
-    // Ищем соответствующий закрывающий </figure> с учётом вложенности
-    let depth = 1
-    let searchPos = startIndex + startTag.length
-    let endIndex = -1
-    while (depth > 0 && searchPos < html.length) {
-      const nextOpen = html.indexOf('<figure', searchPos)
-      const nextClose = html.indexOf('</figure>', searchPos)
-      if (nextClose === -1) break
-      if (nextOpen !== -1 && nextOpen < nextClose) {
-        depth++
-        searchPos = nextOpen + '<figure'.length
-      } else {
-        depth--
-        if (depth === 0) {
-          endIndex = nextClose + '</figure>'.length
-          break
-        }
-        searchPos = nextClose + '</figure>'.length
-      }
-    }
-    if (endIndex === -1) continue
-
-    // Извлекаем весь блок галереи и его содержимое (без внешнего <figure>)
-    const galleryBlock = html.substring(startIndex, endIndex)
-    const galleryContent = html.substring(startIndex + startTag.length, endIndex - '</figure>'.length)
-
-    // Собираем все src изображений внутри
-    const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/g
-    const urls: string[] = []
-    let imgMatch
-    while ((imgMatch = imgRegex.exec(galleryContent)) !== null) {
-      urls.push(imgMatch[1])
-    }
-
-    if (urls.length > 0) {
-      galleriesData.value.push({ id: galleryCounter.value, images: urls })
-      const placeholder = `<div class="vue-gallery" data-gallery-id="${galleryCounter.value}"></div>`
-      // Заменяем оригинальный блок галереи на placeholder
-      html = html.substring(0, startIndex) + placeholder + html.substring(endIndex)
-      galleryCounter.value++
-      // Сброс поиска, чтобы корректно обработать оставшиеся галереи
-      galleryStartRegex.lastIndex = 0
-    }
+const galleryImages = computed(() => {
+  const content = article.value.content
+  if (!content) return []
+  
+  const match = content.match(/<figure class="wp-block-gallery[^>]*>([\s\S]*?)<\/figure>/)
+  if (!match) return []
+  
+  const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/g
+  const urls: string[] = []
+  let m
+  while ((m = imgRegex.exec(match[1])) !== null) {
+    urls.push(m[1])
   }
-
-  return html
+  return urls
 })
 
-// После монтирования заменяем placeholder'ы реальными слайдерами
-onMounted(() => {
-  document.querySelectorAll('.vue-gallery').forEach((el) => {
-    const galleryId = parseInt(el.getAttribute('data-gallery-id') || '0', 10)
-    const gallery = galleriesData.value.find(g => g.id === galleryId)
-    if (!gallery || gallery.images.length === 0) return
-
-    const wrapper = document.createElement('div')
-    wrapper.className = 'gallery-slider'
-
-    const track = document.createElement('div')
-    track.className = 'slider-track'
-    gallery.images.forEach((src) => {
-      const img = document.createElement('img')
-      img.src = src
-      img.className = 'slider-img'
-      img.loading = 'lazy'
-      track.appendChild(img)
-    })
-
-    const leftBtn = document.createElement('button')
-    leftBtn.className = 'slider-btn left'
-    leftBtn.innerHTML = '‹'
-    leftBtn.onclick = () => {
-      track.scrollBy({ left: -track.clientWidth, behavior: 'smooth' })
-    }
-
-    const rightBtn = document.createElement('button')
-    rightBtn.className = 'slider-btn right'
-    rightBtn.innerHTML = '›'
-    rightBtn.onclick = () => {
-      track.scrollBy({ left: track.clientWidth, behavior: 'smooth' })
-    }
-
-    wrapper.appendChild(leftBtn)
-    wrapper.appendChild(track)
-    wrapper.appendChild(rightBtn)
-
-    el.replaceWith(wrapper)
-  })
+const textWithoutGallery = computed(() => {
+  return article.value.content.replace(/<figure class="wp-block-gallery[^>]*>[\s\S]*?<\/figure>/g, '')
 })
 
-// SEO
 useHead({
   title: article.value.title,
   meta: [
@@ -210,7 +122,6 @@ useHead({
 </script>
 
 <style scoped>
-/* ======= Базовые стили контента ======= */
 .wp-content {
   font-size: 1.125rem;
   line-height: 1.7;
@@ -266,7 +177,6 @@ useHead({
   border-radius: 0.5rem;
 }
 
-/* Выравнивание */
 .wp-content :deep(.aligncenter) {
   text-align: center;
   display: block;
@@ -344,71 +254,6 @@ useHead({
   font-weight: 600;
 }
 
-/* ======= Стили слайдера ======= */
-.widget-gallery-zone :deep(.gallery-slider) {
-  position: relative;
-  display: flex;
-  align-items: center;
-  margin: 2rem 0;
-  background: #f8fafc;
-  border-radius: 1rem;
-  padding: 1rem;
-}
-
-.widget-gallery-zone :deep(.slider-track) {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  flex: 1;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.widget-gallery-zone :deep(.slider-track::-webkit-scrollbar) {
-  display: none;
-}
-
-.widget-gallery-zone :deep(.slider-img) {
-  scroll-snap-align: start;
-  flex-shrink: 0;
-  width: 100%;
-  max-height: 500px;
-  object-fit: contain;
-  border-radius: 12px;
-  background: #fff;
-}
-
-.widget-gallery-zone :deep(.slider-btn) {
-  background: rgba(255, 255, 255, 0.9);
-  border: none;
-  font-size: 2rem;
-  padding: 0.2em 0.4em;
-  cursor: pointer;
-  border-radius: 50%;
-  position: absolute;
-  z-index: 2;
-  top: 50%;
-  transform: translateY(-50%);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  color: #333;
-}
-
-.widget-gallery-zone :deep(.slider-btn:disabled) {
-  opacity: 0.3;
-  cursor: default;
-}
-
-.widget-gallery-zone :deep(.slider-btn.left) {
-  left: 10px;
-}
-
-.widget-gallery-zone :deep(.slider-btn.right) {
-  right: 10px;
-}
-
-/* Адаптив */
 @media (max-width: 768px) {
   .wp-content :deep(.alignleft),
   .wp-content :deep(.alignright),
@@ -417,11 +262,6 @@ useHead({
     float: none;
     display: block;
     margin: 1em auto;
-  }
-
-  .widget-gallery-zone :deep(.slider-btn) {
-    font-size: 1.5rem;
-    padding: 0.1em 0.3em;
   }
 }
 </style>

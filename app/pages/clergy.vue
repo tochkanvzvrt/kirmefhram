@@ -53,6 +53,7 @@
 import { Users } from 'lucide-vue-next'
 import Card from '~/components/ui/Card.vue'
 import { useRuntimeConfig } from '#app'
+import { decode } from 'html-entities'
 
 interface ClergyMember {
   id: number

@@ -15,9 +15,10 @@
       </div>
     </section>
 
-    <!-- Контент с возможными inline-галереями -->
+    <!-- Контент -->
     <section class="mx-auto px-4 lg:px-8 py-16 max-w-4xl container">
-      <div v-html="processedContent" class="wp-content widget-gallery-zone"></div>
+      <GallerySlider v-if="galleryImages.length" :images="galleryImages" />
+      <div v-html="textWithoutGallery" class="wp-content"></div>
 
       <div class="mt-12 pt-8 border-border border-t">
         <NuxtLink to="/announcements"
@@ -31,9 +32,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed } from 'vue'
 import { ArrowLeft } from 'lucide-vue-next'
 import { useRuntimeConfig } from '#app'
+import { decode } from 'html-entities'
+import GallerySlider from '~/components/GallerySlider.vue'
 
 const route = useRoute()
 const config = useRuntimeConfig()
@@ -55,9 +58,10 @@ if (error.value || !articleData.value) {
 
 const article = computed(() => {
   const item = articleData.value as any
+  const rawTitle = item.title?.rendered || 'Без названия'
   return {
     id: item.id,
-    title: item.title?.rendered || 'Без названия',
+    title: decode(rawTitle),
     content: item.content?.rendered || '',
     date: item.date || '',
     categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
@@ -84,88 +88,26 @@ const fullUrl = computed(() => {
   return `${baseUrl}/announcements/${id}`
 })
 
-// --- Обработка wp-block-gallery (замена на слайдеры) ---
-const galleryCounter = ref(0)
-const galleriesData = ref<{ id: number; images: string[] }[]>([])
-
-const processedContent = computed(() => {
-  let html = article.value.content
-  galleriesData.value = []
-  galleryCounter.value = 0
-
-  // Ищем все <figure class="wp-block-gallery...">
-  const regex = /<figure class="wp-block-gallery[^>]*>([\s\S]*?)<\/figure>/g
-  let match
-  while ((match = regex.exec(html)) !== null) {
-    const galleryBlock = match[0]
-    const galleryContent = match[1]
-    
-    // Извлекаем все src изображений внутри этого блока
-    const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/g
-    const urls: string[] = []
-    let imgMatch
-    while ((imgMatch = imgRegex.exec(galleryContent)) !== null) {
-      urls.push(imgMatch[1])
-    }
-    
-    // Сохраняем данные для Vue-слайдера
-    galleriesData.value.push({ id: galleryCounter.value, images: urls })
-    
-    // Заменяем исходный блок на контейнер, который Vue захватит при монтировании
-    const placeholder = `<div class="vue-gallery" data-gallery-id="${galleryCounter.value}"></div>`
-    html = html.replace(galleryBlock, placeholder)
-    
-    galleryCounter.value++
+const galleryImages = computed(() => {
+  const content = article.value.content
+  if (!content) return []
+  
+  const match = content.match(/<figure class="wp-block-gallery[^>]*>([\s\S]*?)<\/figure>/)
+  if (!match) return []
+  
+  const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/g
+  const urls: string[] = []
+  let m
+  while ((m = imgRegex.exec(match[1])) !== null) {
+    urls.push(m[1])
   }
-
-  return html
+  return urls
 })
 
-// После монтирования рендерим слайдеры в подготовленные контейнеры
-onMounted(() => {
-  document.querySelectorAll('.vue-gallery').forEach((el) => {
-    const galleryId = parseInt(el.getAttribute('data-gallery-id') || '0', 10)
-    const gallery = galleriesData.value.find(g => g.id === galleryId)
-    if (!gallery || gallery.images.length === 0) return
-    
-    // Создаём слайдер
-    const wrapper = document.createElement('div')
-    wrapper.className = 'gallery-slider'
-    
-    const track = document.createElement('div')
-    track.className = 'slider-track'
-    gallery.images.forEach((src) => {
-      const img = document.createElement('img')
-      img.src = src
-      img.className = 'slider-img'
-      img.loading = 'lazy'
-      track.appendChild(img)
-    })
-    
-    // Кнопки
-    const leftBtn = document.createElement('button')
-    leftBtn.className = 'slider-btn left'
-    leftBtn.innerHTML = '‹'
-    leftBtn.onclick = () => {
-      track.scrollBy({ left: -track.clientWidth, behavior: 'smooth' })
-    }
-    
-    const rightBtn = document.createElement('button')
-    rightBtn.className = 'slider-btn right'
-    rightBtn.innerHTML = '›'
-    rightBtn.onclick = () => {
-      track.scrollBy({ left: track.clientWidth, behavior: 'smooth' })
-    }
-    
-    wrapper.appendChild(leftBtn)
-    wrapper.appendChild(track)
-    wrapper.appendChild(rightBtn)
-    
-    el.replaceWith(wrapper)
-  })
+const textWithoutGallery = computed(() => {
+  return article.value.content.replace(/<figure class="wp-block-gallery[^>]*>[\s\S]*?<\/figure>/g, '')
 })
 
-// SEO
 useHead({
   title: article.value.title,
   meta: [
@@ -180,7 +122,6 @@ useHead({
 </script>
 
 <style scoped>
-/* ======= БАЗОВЫЕ СТИЛИ КОНТЕНТА ======= */
 .wp-content {
   font-size: 1.125rem;
   line-height: 1.7;
@@ -236,7 +177,6 @@ useHead({
   border-radius: 0.5rem;
 }
 
-/* Выравнивание */
 .wp-content :deep(.aligncenter) {
   text-align: center;
   display: block;
@@ -265,7 +205,6 @@ useHead({
   margin: 1.5em 0;
 }
 
-/* Фигуры */
 .wp-content :deep(figure.aligncenter) {
   display: flex;
   flex-direction: column;
@@ -315,71 +254,6 @@ useHead({
   font-weight: 600;
 }
 
-/* ======= СТИЛИ СЛАЙДЕРА (через :deep на зоне) ======= */
-.widget-gallery-zone :deep(.gallery-slider) {
-  position: relative;
-  display: flex;
-  align-items: center;
-  margin: 2rem 0;
-  background: #f8fafc;
-  border-radius: 1rem;
-  padding: 1rem;
-}
-
-.widget-gallery-zone :deep(.slider-track) {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  flex: 1;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.widget-gallery-zone :deep(.slider-track::-webkit-scrollbar) {
-  display: none;
-}
-
-.widget-gallery-zone :deep(.slider-img) {
-  scroll-snap-align: start;
-  flex-shrink: 0;
-  width: 100%;
-  max-height: 500px;
-  object-fit: contain;
-  border-radius: 12px;
-  background: #fff;
-}
-
-.widget-gallery-zone :deep(.slider-btn) {
-  background: rgba(255, 255, 255, 0.9);
-  border: none;
-  font-size: 2rem;
-  padding: 0.2em 0.4em;
-  cursor: pointer;
-  border-radius: 50%;
-  position: absolute;
-  z-index: 2;
-  top: 50%;
-  transform: translateY(-50%);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  color: #333;
-}
-
-.widget-gallery-zone :deep(.slider-btn:disabled) {
-  opacity: 0.3;
-  cursor: default;
-}
-
-.widget-gallery-zone :deep(.slider-btn.left) {
-  left: 10px;
-}
-
-.widget-gallery-zone :deep(.slider-btn.right) {
-  right: 10px;
-}
-
-/* Адаптив */
 @media (max-width: 768px) {
   .wp-content :deep(.alignleft),
   .wp-content :deep(.alignright),
@@ -388,11 +262,6 @@ useHead({
     float: none;
     display: block;
     margin: 1em auto;
-  }
-
-  .widget-gallery-zone :deep(.slider-btn) {
-    font-size: 1.5rem;
-    padding: 0.1em 0.3em;
   }
 }
 </style>

@@ -2,7 +2,6 @@
   <div class="w-full">
     <section
       class="relative flex justify-center items-center h-[600px] bg-gradient-to-br from-primary to-primary/80 overflow-hidden">
-      <!-- Фоновое изображение с blur-анимацией -->
       <img v-if="activeBanner" :src="activeBanner" alt="" @load="onBannerLoad"
         class="absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-out"
         :class="bannerImgClass" />
@@ -32,15 +31,12 @@
       </div>
     </section>
 
-    <!-- Расписание -->
     <section class="mx-auto px-4 lg:px-8 py-16 container">
       <h2 class="mb-8 text-green-700 text-4xl text-center">Расписание богослужений</h2>
 
-      <!-- Десктоп: стандартная сетка -->
       <div v-if="upcomingSchedule.length" class="hidden md:grid gap-6 grid-cols-3 mb-8">
         <Card v-for="(item, index) in upcomingSchedule" :key="index"
           class="transition-shadow hover:shadow-lg p-6 border-2 hover:border-accent cursor-pointer">
-          <!-- содержимое карточки -->
           <div class="flex justify-between items-start mb-4">
             <div>
               <div class="font-serif text-primary text-4xl">{{ item.date }}</div>
@@ -58,7 +54,6 @@
         </Card>
       </div>
 
-      <!-- Мобильный слайдер (показывается только на < md) -->
       <div v-if="upcomingSchedule.length" class="md:hidden relative">
         <div class="flex items-center">
           <button @click="scrollSchedule(-1)" :disabled="scheduleSlideIndex <= 0"
@@ -72,7 +67,6 @@
             <div v-for="(item, index) in upcomingSchedule" :key="index"
               class="snap-center flex-shrink-0 w-[85vw] max-w-[380px]">
               <Card class="transition-shadow hover:shadow-lg p-6 border-2 hover:border-accent cursor-pointer h-full">
-                <!-- содержимое такое же -->
                 <div class="flex justify-between items-start mb-4">
                   <div>
                     <div class="font-serif text-primary text-4xl">{{ item.date }}</div>
@@ -97,7 +91,6 @@
           </button>
         </div>
 
-        <!-- Точки-индикаторы -->
         <div class="flex justify-center gap-2 mt-4">
           <span v-for="(item, idx) in upcomingSchedule" :key="idx"
             class="w-2 h-2 rounded-full transition-all duration-300"
@@ -119,7 +112,6 @@
       </div>
     </section>
 
-    <!-- Новости -->
     <section class="mx-auto px-4 lg:px-8 py-16 container">
       <h2 class="mb-8 text-primary text-4xl text-center">Последние новости</h2>
       <div v-if="latestNews.length" class="gap-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 mx-auto mb-8 max-w-5xl">
@@ -162,7 +154,6 @@
       </div>
     </section>
 
-    <!-- О храме -->
     <section class="py-16 border-border border-t">
       <div class="mx-auto px-4 lg:px-8 container">
         <div class="mx-auto max-w-3xl text-center">
@@ -182,7 +173,6 @@
       </div>
     </section>
 
-    <!-- Пожертвования -->
     <section class="py-6 border-border border-y">
       <div class="mx-auto px-4 lg:px-8 container">
         <div class="flex flex-col justify-between items-center gap-4 mx-auto max-w-4xl">
@@ -200,7 +190,6 @@
       </div>
     </section>
 
-    <!-- Анонсы -->
     <section class="mx-auto px-4 lg:px-8 py-16 container">
       <h2 class="mb-8 text-primary text-4xl text-center">Анонсы</h2>
       <div v-if="latestAnnouncements.length"
@@ -251,11 +240,11 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { Church, ArrowRight, Calendar } from 'lucide-vue-next'
+import { Church, ArrowRight, Calendar, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import Button from '~/components/ui/Button.vue'
 import Card from '~/components/ui/Card.vue'
 import { useContentStore } from '~/stores/content'
-import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { decode } from 'html-entities'
 
 useSeoMeta({
   title: 'Кирилло-Мефодиевский храм Балашихи | Официальный сайт',
@@ -273,13 +262,11 @@ await callOnce('main-news', () => store.fetchNews())
 await callOnce('main-announcements', () => store.fetchAnnouncements())
 await callOnce('main-schedule', () => store.fetchSchedule())
 
-// Баннеры
 const bannerImages = ref<string[]>([])
 const currentBannerIndex = ref(0)
 const bannersLoaded = ref(false)
 const bannerLoaded = ref(false)
 
-//Слайдер
 const scheduleSlider = ref<HTMLElement | null>(null)
 const scheduleSlideIndex = ref(0)
 
@@ -309,8 +296,6 @@ function scrollSchedule(dir: number) {
   scheduleSlideIndex.value = newIndex
   slides[newIndex]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' })
 }
-
-
 
 let rotationTimer: ReturnType<typeof setInterval> | null = null
 
@@ -353,12 +338,15 @@ onUnmounted(() => {
   if (rotationTimer) clearInterval(rotationTimer)
 })
 
-// Computed
 const latestNews = computed(() => {
   const news = store.news || []
   return [...news]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 4)
+    .map(item => ({
+      ...item,
+      title: decode(item.title || '')
+    }))
 })
 
 const latestAnnouncements = computed(() => {
@@ -366,6 +354,10 @@ const latestAnnouncements = computed(() => {
   return [...announcements]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 4)
+    .map(item => ({
+      ...item,
+      title: decode(item.title || '')
+    }))
 })
 
 const upcomingSchedule = computed(() => {

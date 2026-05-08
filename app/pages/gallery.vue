@@ -38,7 +38,6 @@
         </button>
       </div>
 
-      <!-- Сетка альбомов -->
       <div v-else class="gap-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         <Card v-for="album in albums" :key="album.id"
           class="group bg-card hover:shadow-2xl border-0 h-full overflow-hidden transition-all hover:-translate-y-1 duration-300 cursor-pointer"
@@ -64,6 +63,7 @@
 import { ImageIcon } from 'lucide-vue-next'
 import Card from '~/components/ui/Card.vue'
 import { useRuntimeConfig } from '#app'
+import { decode } from 'html-entities'
 
 interface Album {
   id: number
@@ -89,10 +89,7 @@ const albums = computed<Album[]>(() => {
 
   return data.value.map((item: any) => {
     let title = item.albumname || 'Без названия'
-    title = decodeURIComponent(title)
-      .replace(/\\u[\\dA-Fa-f]{4}/gi, (match) =>
-        String.fromCharCode(parseInt(match.replace(/\\u/gi, ''), 16))
-      )
+    title = decode(title)
 
     let coverImage = item.photo?.guid || '/placeholder.jpg'
     coverImage = decodeURIComponent(coverImage.replace(/\\\\/g, '\\'))
