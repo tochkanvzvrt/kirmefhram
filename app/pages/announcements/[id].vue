@@ -1,5 +1,6 @@
 <template>
   <div class="w-full">
+    <!-- Hero -->
     <section class="bg-gradient-to-br from-primary to-primary/80 py-20 text-white">
       <div class="mx-auto px-4 lg:px-8 text-center container">
         <h1 class="mb-4 font-serif text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl break-words">
@@ -8,30 +9,15 @@
         <div class="flex justify-center gap-4 text-white/80 text-sm md:text-base">
           <span>{{ formatDate(article.date) }}</span>
           <span v-if="article.categories.length">
-            • {{article.categories.map(c => c.name).join(', ')}}
+            • {{ article.categories.map(c => c.name).join(', ') }}
           </span>
         </div>
       </div>
     </section>
 
+    <!-- Контент с возможными inline-галереями -->
     <section class="mx-auto px-4 lg:px-8 py-16 max-w-4xl container">
-      <!-- Блок для категории "Галерея" -->
-      <template v-if="isGallery">
-        <div v-if="galleryImages.length" class="gallery-slider">
-          <button class="slider-btn left" @click="scrollGallery(-1)" :disabled="currentSlide === 0">‹</button>
-          <div class="slider-track" ref="sliderTrack">
-            <img v-for="(img, i) in galleryImages" :key="i" :src="img" :alt="`Фото ${i + 1}`" class="slider-img"
-              loading="lazy" />
-          </div>
-          <button class="slider-btn right" @click="scrollGallery(1)"
-            :disabled="currentSlide >= galleryImages.length - 1">›</button>
-        </div>
-        <!-- Текст анонса без изображений -->
-        <div v-if="textOnlyContent" v-html="textOnlyContent" class="wp-content"></div>
-      </template>
-
-      <!-- Обычный вывод контента для всех других категорий -->
-      <div v-else v-html="article.content" class="wp-content"></div>
+      <div v-html="processedContent" class="wp-content widget-gallery-zone"></div>
 
       <div class="mt-12 pt-8 border-border border-t">
         <NuxtLink to="/announcements"
@@ -45,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ArrowLeft } from 'lucide-vue-next'
 import { useRuntimeConfig } from '#app'
 
@@ -98,39 +84,86 @@ const fullUrl = computed(() => {
   return `${baseUrl}/announcements/${id}`
 })
 
-// --- Галерея ---
-const isGallery = computed(() => {
-  return article.value.categories.some(
-    cat => cat.slug === 'gallery' || cat.name.toLowerCase() === 'галерея'
-  )
-})
+// --- Обработка wp-block-gallery (замена на слайдеры) ---
+const galleryCounter = ref(0)
+const galleriesData = ref<{ id: number; images: string[] }[]>([])
 
-const galleryImages = computed(() => {
-  if (!isGallery.value || !article.value.content) return []
-  const regex = /<img[^>]+src=["']([^"']+)["'][^>]*>/g
-  const urls: string[] = []
+const processedContent = computed(() => {
+  let html = article.value.content
+  galleriesData.value = []
+  galleryCounter.value = 0
+
+  // Ищем все <figure class="wp-block-gallery...">
+  const regex = /<figure class="wp-block-gallery[^>]*>([\s\S]*?)<\/figure>/g
   let match
-  while ((match = regex.exec(article.value.content)) !== null) {
-    urls.push(match[1])
+  while ((match = regex.exec(html)) !== null) {
+    const galleryBlock = match[0]
+    const galleryContent = match[1]
+    
+    // Извлекаем все src изображений внутри этого блока
+    const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/g
+    const urls: string[] = []
+    let imgMatch
+    while ((imgMatch = imgRegex.exec(galleryContent)) !== null) {
+      urls.push(imgMatch[1])
+    }
+    
+    // Сохраняем данные для Vue-слайдера
+    galleriesData.value.push({ id: galleryCounter.value, images: urls })
+    
+    // Заменяем исходный блок на контейнер, который Vue захватит при монтировании
+    const placeholder = `<div class="vue-gallery" data-gallery-id="${galleryCounter.value}"></div>`
+    html = html.replace(galleryBlock, placeholder)
+    
+    galleryCounter.value++
   }
-  return urls
+
+  return html
 })
 
-const textOnlyContent = computed(() => {
-  if (!isGallery.value) return ''
-  return article.value.content.replace(/<img[^>]*>/g, '')
+// После монтирования рендерим слайдеры в подготовленные контейнеры
+onMounted(() => {
+  document.querySelectorAll('.vue-gallery').forEach((el) => {
+    const galleryId = parseInt(el.getAttribute('data-gallery-id') || '0', 10)
+    const gallery = galleriesData.value.find(g => g.id === galleryId)
+    if (!gallery || gallery.images.length === 0) return
+    
+    // Создаём слайдер
+    const wrapper = document.createElement('div')
+    wrapper.className = 'gallery-slider'
+    
+    const track = document.createElement('div')
+    track.className = 'slider-track'
+    gallery.images.forEach((src) => {
+      const img = document.createElement('img')
+      img.src = src
+      img.className = 'slider-img'
+      img.loading = 'lazy'
+      track.appendChild(img)
+    })
+    
+    // Кнопки
+    const leftBtn = document.createElement('button')
+    leftBtn.className = 'slider-btn left'
+    leftBtn.innerHTML = '‹'
+    leftBtn.onclick = () => {
+      track.scrollBy({ left: -track.clientWidth, behavior: 'smooth' })
+    }
+    
+    const rightBtn = document.createElement('button')
+    rightBtn.className = 'slider-btn right'
+    rightBtn.innerHTML = '›'
+    rightBtn.onclick = () => {
+      track.scrollBy({ left: track.clientWidth, behavior: 'smooth' })
+    }
+    
+    wrapper.appendChild(leftBtn)
+    wrapper.appendChild(track)
+    wrapper.appendChild(rightBtn)
+    
+    el.replaceWith(wrapper)
+  })
 })
-
-const sliderTrack = ref<HTMLElement | null>(null)
-const currentSlide = ref(0)
-
-const scrollGallery = (dir: number) => {
-  if (!sliderTrack.value) return
-  const step = sliderTrack.value.clientWidth
-  const newIndex = Math.max(0, Math.min(currentSlide.value + dir, galleryImages.value.length - 1))
-  currentSlide.value = newIndex
-  sliderTrack.value.scrollTo({ left: step * newIndex, behavior: 'smooth' })
-}
 
 // SEO
 useHead({
@@ -147,6 +180,7 @@ useHead({
 </script>
 
 <style scoped>
+/* ======= БАЗОВЫЕ СТИЛИ КОНТЕНТА ======= */
 .wp-content {
   font-size: 1.125rem;
   line-height: 1.7;
@@ -169,29 +203,12 @@ useHead({
   margin-bottom: 0.75em;
 }
 
-.wp-content :deep(h1) {
-  font-size: 2rem;
-}
-
-.wp-content :deep(h2) {
-  font-size: 1.75rem;
-}
-
-.wp-content :deep(h3) {
-  font-size: 1.5rem;
-}
-
-.wp-content :deep(h4) {
-  font-size: 1.25rem;
-}
-
-.wp-content :deep(h5) {
-  font-size: 1rem;
-}
-
-.wp-content :deep(h6) {
-  font-size: 0.875rem;
-}
+.wp-content :deep(h1) { font-size: 2rem; }
+.wp-content :deep(h2) { font-size: 1.75rem; }
+.wp-content :deep(h3) { font-size: 1.5rem; }
+.wp-content :deep(h4) { font-size: 1.25rem; }
+.wp-content :deep(h5) { font-size: 1rem; }
+.wp-content :deep(h6) { font-size: 0.875rem; }
 
 .wp-content :deep(strong),
 .wp-content :deep(b) {
@@ -219,6 +236,7 @@ useHead({
   border-radius: 0.5rem;
 }
 
+/* Выравнивание */
 .wp-content :deep(.aligncenter) {
   text-align: center;
   display: block;
@@ -247,6 +265,7 @@ useHead({
   margin: 1.5em 0;
 }
 
+/* Фигуры */
 .wp-content :deep(figure.aligncenter) {
   display: flex;
   flex-direction: column;
@@ -296,8 +315,8 @@ useHead({
   font-weight: 600;
 }
 
-/* ======= СЛАЙДЕР ГАЛЕРЕИ ======= */
-.gallery-slider {
+/* ======= СТИЛИ СЛАЙДЕРА (через :deep на зоне) ======= */
+.widget-gallery-zone :deep(.gallery-slider) {
   position: relative;
   display: flex;
   align-items: center;
@@ -307,7 +326,7 @@ useHead({
   padding: 1rem;
 }
 
-.slider-track {
+.widget-gallery-zone :deep(.slider-track) {
   display: flex;
   gap: 10px;
   overflow-x: auto;
@@ -318,11 +337,11 @@ useHead({
   scrollbar-width: none;
 }
 
-.slider-track::-webkit-scrollbar {
+.widget-gallery-zone :deep(.slider-track::-webkit-scrollbar) {
   display: none;
 }
 
-.slider-img {
+.widget-gallery-zone :deep(.slider-img) {
   scroll-snap-align: start;
   flex-shrink: 0;
   width: 100%;
@@ -332,7 +351,7 @@ useHead({
   background: #fff;
 }
 
-.slider-btn {
+.widget-gallery-zone :deep(.slider-btn) {
   background: rgba(255, 255, 255, 0.9);
   border: none;
   font-size: 2rem;
@@ -347,22 +366,21 @@ useHead({
   color: #333;
 }
 
-.slider-btn:disabled {
+.widget-gallery-zone :deep(.slider-btn:disabled) {
   opacity: 0.3;
   cursor: default;
 }
 
-.slider-btn.left {
+.widget-gallery-zone :deep(.slider-btn.left) {
   left: 10px;
 }
 
-.slider-btn.right {
+.widget-gallery-zone :deep(.slider-btn.right) {
   right: 10px;
 }
 
-/* Адаптив для мобильных */
+/* Адаптив */
 @media (max-width: 768px) {
-
   .wp-content :deep(.alignleft),
   .wp-content :deep(.alignright),
   .wp-content :deep(figure.alignleft),
@@ -372,7 +390,7 @@ useHead({
     margin: 1em auto;
   }
 
-  .slider-btn {
+  .widget-gallery-zone :deep(.slider-btn) {
     font-size: 1.5rem;
     padding: 0.1em 0.3em;
   }
