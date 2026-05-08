@@ -22,16 +22,15 @@
       <div v-else class="gap-8 grid grid-cols-1 md:grid-cols-2 mx-auto max-w-6xl">
         <Card v-for="person in clergy" :key="person.id" class="hover:shadow-xl overflow-hidden transition-shadow">
           <div class="bg-muted aspect-square overflow-hidden">
-            <img 
-              :src="person.image || '/images/placeholder-clergy.jpg'" 
-              :alt="person.name"
-              class="w-full h-full object-cover"
-              @error="(e) => e.target.src = '/images/placeholder-clergy.jpg'"
-            />
+            <a v-if="person.mitlink" :href="person.mitlink" target="_blank" rel="noopener noreferrer">
+              <img :src="person.image || '/images/placeholder-clergy.jpg'" :alt="person.name"
+                class="w-full h-full object-cover" @error="(e) => e.target.src = '/images/placeholder-clergy.jpg'" />
+            </a>
+            <img v-else :src="person.image || '/images/placeholder-clergy.jpg'" :alt="person.name"
+              class="w-full h-full object-cover" @error="(e) => e.target.src = '/images/placeholder-clergy.jpg'" />
           </div>
           <div class="p-6">
             <h3 class="mb-2 font-serif text-primary text-2xl">{{ person.name }}</h3>
-            <!-- Описание с сохранением форматирования и HTML-тегов -->
             <div class="clergy-description" v-html="person.description"></div>
           </div>
         </Card>
@@ -60,12 +59,12 @@ interface ClergyMember {
   name: string
   description: string
   image: string | null
+  mitlink?: string
 }
 
 const config = useRuntimeConfig()
 const wpBase = config.public.wpApi
 
-// Загружаем данные о духовенстве (один раз на сервере и клиенте)
 const { data, pending, error } = await useFetch<Array<any>>(`${wpBase}/wp-json/wp/v2/clergy`, {
   key: 'clergy',
   server: true,
@@ -78,29 +77,24 @@ const { data, pending, error } = await useFetch<Array<any>>(`${wpBase}/wp-json/w
 // Преобразуем данные
 const clergy = computed<ClergyMember[]>(() => {
   if (!data.value || !Array.isArray(data.value)) return []
-  
+
   return data.value.map((item: any) => {
-    // Имя: из title.rendered или clname
     let name = item.title?.rendered || item.clname || 'Без имени'
-    // Декодируем HTML-сущности
     name = name.replace(/&#038;/g, '&').replace(/&#([0-9]+);/g, (match, dec) => String.fromCharCode(dec))
-    
-    // Описание: оставляем как есть (с HTML-тегами и переносами строк)
     let description = item.description || ''
-    
-    // Фото: приоритет photo.guid, затем _embedded
     let image: string | null = null
     if (item.photo && typeof item.photo === 'object' && item.photo.guid) {
       image = item.photo.guid
     } else if (item._embedded && item._embedded['wp:featuredmedia'] && item._embedded['wp:featuredmedia'][0]?.source_url) {
       image = item._embedded['wp:featuredmedia'][0].source_url
     }
-    
+
     return {
       id: item.id,
       name,
       description,
       image,
+      mitlink: item.mitlink || '',
     }
   })
 })
@@ -116,7 +110,8 @@ useHead({
 
 <style scoped>
 .clergy-description {
-  white-space: pre-wrap;    /* сохраняет переносы строк из текста */
+  white-space: pre-wrap;
+  /* сохраняет переносы строк из текста */
   word-wrap: break-word;
   font-size: 0.875rem;
   line-height: 1.5;
