@@ -346,6 +346,20 @@ useHead({
   font-weight: 600;
 }
 
+.wp-content :deep(a) {
+  color: #2563eb; 
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.wp-content :deep(a:hover) {
+  color: #1d4ed8; 
+}
+
+.wp-content :deep(a:visited) {
+  color: #7c3aed;
+}
+
 /* Адаптив */
 @media (max-width: 768px) {
   .wp-content :deep(.alignleft),
