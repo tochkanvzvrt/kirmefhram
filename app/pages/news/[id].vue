@@ -9,7 +9,7 @@
         <div class="flex justify-center gap-4 text-white/80 text-sm md:text-base">
           <span>{{ formatDate(article.date) }}</span>
           <span v-if="article.categories.length">
-            • {{ article.categories.map(c => c.name).join(', ') }}
+            • {{article.categories.map(c => c.name).join(', ')}}
           </span>
         </div>
       </div>
@@ -23,8 +23,7 @@
       </template>
 
       <div class="mt-12 pt-8 border-border border-t">
-        <NuxtLink to="/news"
-          class="inline-flex items-center gap-2 text-primary hover:underline transition-colors">
+        <NuxtLink to="/news" class="inline-flex items-center gap-2 text-primary hover:underline transition-colors">
           <ArrowLeft class="w-4 h-4" />
           Вернуться к списку новостей
         </NuxtLink>
@@ -235,12 +234,29 @@ useHead({
   margin-bottom: 0.75em;
 }
 
-.wp-content :deep(h1) { font-size: 2rem; }
-.wp-content :deep(h2) { font-size: 1.75rem; }
-.wp-content :deep(h3) { font-size: 1.5rem; }
-.wp-content :deep(h4) { font-size: 1.25rem; }
-.wp-content :deep(h5) { font-size: 1rem; }
-.wp-content :deep(h6) { font-size: 0.875rem; }
+.wp-content :deep(h1) {
+  font-size: 2rem;
+}
+
+.wp-content :deep(h2) {
+  font-size: 1.75rem;
+}
+
+.wp-content :deep(h3) {
+  font-size: 1.5rem;
+}
+
+.wp-content :deep(h4) {
+  font-size: 1.25rem;
+}
+
+.wp-content :deep(h5) {
+  font-size: 1rem;
+}
+
+.wp-content :deep(h6) {
+  font-size: 0.875rem;
+}
 
 .wp-content :deep(strong),
 .wp-content :deep(b) {
@@ -347,13 +363,13 @@ useHead({
 }
 
 .wp-content :deep(a) {
-  color: #2563eb; 
+  color: rgb(138, 45, 30); 
   text-decoration: underline;
   transition: color 0.2s;
 }
 
 .wp-content :deep(a:hover) {
-  color: #1d4ed8; 
+  color: rgb(162, 85, 73); /* бордовый */
 }
 
 .wp-content :deep(a:visited) {
@@ -362,6 +378,7 @@ useHead({
 
 /* Адаптив */
 @media (max-width: 768px) {
+
   .wp-content :deep(.alignleft),
   .wp-content :deep(.alignright),
   .wp-content :deep(figure.alignleft),

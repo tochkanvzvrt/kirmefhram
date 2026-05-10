@@ -345,17 +345,17 @@ useHead({
 }
 
 .wp-content :deep(a) {
-  color: #2563eb; 
+  color: rgb(138, 45, 30); 
   text-decoration: underline;
   transition: color 0.2s;
 }
 
 .wp-content :deep(a:hover) {
-  color: #1d4ed8; 
+  color: rgb(162, 85, 73); /* бордовый */
 }
 
 .wp-content :deep(a:visited) {
-  color: #7c3aed; 
+  color: #7c3aed;
 }
 
 @media (max-width: 768px) {
