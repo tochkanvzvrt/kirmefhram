@@ -24,7 +24,7 @@
 
         <div class="mb-12">
           <Card class="p-7">
-            <VonmiDonation />
+            <div id="vonmi-widget" data-id="13f1c69585895cd1f25f4709e279aa12"></div>
           </Card>
         </div>
         <div class="mt-12 text-center">
@@ -36,7 +36,19 @@
 </template>
 
 <script setup>
-import { Heart, Info } from 'lucide-vue-next'
+import { onMounted } from 'vue'
+import { Heart } from 'lucide-vue-next'
 import Card from '~/components/ui/Card.vue'
-import VonmiDonation from '~/components/VonmiDonation.vue' 
+
+onMounted(() => {
+  // Удаляем старый скрипт (на случай, если он уже загружен)
+  const oldScript = document.querySelector('script[src="https://cdn.vonmi.org/widget/vonmi-donation.js"]')
+  if (oldScript) oldScript.remove()
+
+  // Загружаем скрипт именно для пожертвований (vonmi-donation.js)
+  const script = document.createElement('script')
+  script.src = 'https://cdn.vonmi.org/widget/vonmi-donation.js'
+  script.async = true
+  document.body.appendChild(script)
+})
 </script>
