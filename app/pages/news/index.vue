@@ -5,8 +5,8 @@
         <div class="inline-flex justify-center items-center bg-white/10 mb-6 rounded-full w-20 h-20">
           <Newspaper class="w-10 h-10" />
         </div>
-        <h1 class="mb-4 font-serif text-5xl md:text-6xl">Новости</h1>
-        <p class="opacity-90 mx-auto max-w-2xl text-xl">
+        <h1 class="mb-4 font-serif text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl break-words">Новости</h1>
+        <p class="opacity-90 mx-auto max-w-2xl text-lg md:text-xl">
           События и объявления прихода
         </p>
       </div>
@@ -15,7 +15,7 @@
     <section class="top-20 z-40 sticky bg-white py-6 border-border border-b">
       <div class="mx-auto px-4 lg:px-8 container">
         <div class="flex flex-wrap justify-center gap-3">
-          <button v-for="cat in categoriesList" :key="cat.id" @click="selectedCategory = cat.id" :class="[
+          <button v-for="cat in categoriesList" :key="cat.id" @click="goToCategory(cat.id)" :class="[
             'px-4 py-2 rounded-full text-sm transition-all',
             selectedCategory === cat.id
               ? 'bg-primary text-white'
@@ -28,47 +28,62 @@
     </section>
 
     <section class="mx-auto px-4 lg:px-8 py-16 container">
-      <div v-if="store.news.length === 0 && !error" class="py-16 text-center">
+      <div v-if="loading" class="py-16 text-center">
         <p class="text-muted-foreground">Загрузка новостей...</p>
       </div>
       <div v-else-if="error" class="py-16 text-center text-destructive">
         <p>Ошибка загрузки новостей. Попробуйте позже.</p>
       </div>
+      <div v-else-if="filteredNews.length === 0" class="py-16 text-center">
+        <p class="text-muted-foreground text-lg">Новостей в этой категории пока нет</p>
+      </div>
       <div v-else class="gap-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         <NuxtLink v-for="article in filteredNews" :key="article.id" :to="`/news/${article.id}`" class="block">
-          <Card class="group hover:shadow-xl overflow-hidden transition-shadow cursor-pointer">
+          <Card class="group hover:shadow-xl overflow-hidden transition-shadow cursor-pointer h-full flex flex-col">
             <div class="bg-muted aspect-video overflow-hidden">
               <img :src="article.image || '/images/question.png'" :alt="article.title"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 @error="(e) => e.target.src = '/images/question.png'" />
             </div>
-            <div class="p-6">
-              <div class="flex justify-between items-center mb-3">
-                <div class="flex items-center gap-2 text-muted-foreground text-sm">
-                  <Calendar class="w-4 h-4" />
-                  <span>{{ formatDate(article.date) }}</span>
-                </div>
-                <Badge v-if="article.categories.length" variant="secondary">
-                  {{ article.categories[0].name }}
-                </Badge>
+            <div class="flex flex-col flex-1 p-6">
+              <div class="flex items-center gap-2 text-muted-foreground text-sm mb-3">
+                <Calendar class="w-4 h-4 flex-shrink-0" />
+                <span>{{ formatDate(article.date) }}</span>
               </div>
-              <h3 class="mb-3 font-serif group-hover:text-primary text-xl transition-colors">
+              <h3 class="mb-3 font-serif group-hover:text-primary text-xl transition-colors line-clamp-2">
                 {{ article.title }}
               </h3>
-              <p class="mb-4 text-muted-foreground line-clamp-3">
+              <p class="mb-4 text-muted-foreground line-clamp-3 flex-1">
                 {{ getLead(article) }}
               </p>
-              <button class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
+              <!-- Рубрики -->
+              <div v-if="article.categories.length" class="flex flex-wrap gap-1 mb-3">
+                <Badge v-for="cat in article.categories" :key="cat.id" variant="secondary" class="text-xs">
+                  {{ cat.name }}
+                </Badge>
+              </div>
+              <span class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
                 Читать полностью
                 <ArrowRight class="w-4 h-4" />
-              </button>
+              </span>
             </div>
           </Card>
         </NuxtLink>
       </div>
 
-      <div v-if="filteredNews.length === 0 && store.news.length > 0" class="py-16 text-center">
-        <p class="text-muted-foreground text-lg">Новостей в этой категории пока нет</p>
+      <!-- ПАГИНАЦИЯ -->
+      <div v-if="store.totalNewsPages > 1" class="flex justify-center gap-2 mt-10">
+        <button
+          v-for="page in store.totalNewsPages"
+          :key="page"
+          @click="goToPage(page)"
+          :class="[
+            'px-4 py-2 rounded-lg transition',
+            page === store.currentNewsPage ? 'bg-primary text-white' : 'bg-muted hover:bg-primary/10'
+          ]"
+        >
+          {{ page }}
+        </button>
       </div>
     </section>
   </div>
@@ -83,15 +98,18 @@ import { useContentStore } from '~/stores/content'
 import { decode } from 'html-entities'
 
 const store = useContentStore()
+const loading = ref(false)
 const error = ref(false)
 
-if (store.news.length === 0) {
-  try {
-    await store.fetchAllNews()
-  } catch (err) {
-    console.error(err)
-    error.value = true
-  }
+// Всегда загружаем первую страницу
+try {
+  loading.value = true
+  await store.fetchNewsPage(1, 20)
+} catch (err) {
+  console.error(err)
+  error.value = true
+} finally {
+  loading.value = false
 }
 
 const categoriesList = computed(() => {
@@ -123,6 +141,22 @@ const filteredNews = computed(() => {
     title: decode(item.title || '')
   }))
 })
+
+async function goToCategory(catId: string) {
+  selectedCategory.value = catId
+}
+
+async function goToPage(page: number) {
+  loading.value = true
+  try {
+    await store.fetchNewsPage(page, 20)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  } catch (err) {
+    error.value = true
+  } finally {
+    loading.value = false
+  }
+}
 
 const formatDate = (dateStr: string) => {
   if (!dateStr) return ''

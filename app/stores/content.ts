@@ -36,9 +36,19 @@ export const useContentStore = defineStore('content', {
     announcements: [] as Announcement[],
     news: [] as NewsItem[],
     schedule: [] as ScheduleDay[],
+
+    // Пагинация
+    totalNewsPages: 0,
+    currentNewsPage: 1,
+    newsPerPage: 20,
+
+    totalAnnouncementPages: 0,
+    currentAnnouncementPage: 1,
+    announcementsPerPage: 20,
   }),
 
   actions: {
+    // Старый метод (для главной страницы – 20 записей)
     async fetchNews() {
       const config = useRuntimeConfig()
       const wpBase = config.public.wpApi
@@ -68,6 +78,49 @@ export const useContentStore = defineStore('content', {
       }
     },
 
+    // Новый метод постраничной загрузки новостей
+    async fetchNewsPage(page: number, perPage: number = 20) {
+      const config = useRuntimeConfig()
+      const wpBase = config.public.wpApi
+      try {
+        const response = await $fetch.raw(`${wpBase}/wp-json/wp/v2/new`, {
+          params: {
+            _embed: true,
+            per_page: perPage,
+            page: page,
+            orderby: 'date',
+            order: 'desc'
+          }
+        })
+        const data = response._data
+        if (Array.isArray(data)) {
+          this.news = data.map((item: any) => ({
+            id: item.id,
+            title: item.title?.rendered || 'Без названия',
+            content: item.content?.rendered || '',
+            excerpt: item.excerpt?.rendered || '',
+            date: item.date || '',
+            link: item.link || '',
+            categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
+              id: term.id,
+              name: term.name,
+              slug: term.slug,
+            })) || [],
+            image: item._embedded?.['wp:featuredmedia']?.[0]?.source_url || null,
+          }))
+        }
+        const totalPages = response.headers?.get('x-wp-totalpages')
+        if (totalPages) this.totalNewsPages = parseInt(totalPages)
+        const totalItems = response.headers?.get('x-wp-total')
+        if (totalItems) this.totalNewsItems = parseInt(totalItems)
+        this.currentNewsPage = page
+      } catch (err) {
+        console.error('Ошибка загрузки страницы новостей:', err)
+        this.news = []
+      }
+    },
+
+    // Старый метод загрузки всех новостей (оставлен для совместимости)
     async fetchAllNews() {
       const config = useRuntimeConfig()
       const wpBase = config.public.wpApi
@@ -115,6 +168,7 @@ export const useContentStore = defineStore('content', {
       }
     },
 
+    // Старый метод загрузки анонсов (20 записей)
     async fetchAnnouncements() {
       const config = useRuntimeConfig()
       const wpBase = config.public.wpApi
@@ -156,6 +210,60 @@ export const useContentStore = defineStore('content', {
       }
     },
 
+    // Новый метод постраничной загрузки анонсов
+    async fetchAnnouncementsPage(page: number, perPage: number = 20) {
+      const config = useRuntimeConfig()
+      const wpBase = config.public.wpApi
+      try {
+        const response = await $fetch.raw(`${wpBase}/wp-json/wp/v2/announcement`, {
+          params: {
+            _embed: true,
+            per_page: perPage,
+            page: page,
+            orderby: 'date',
+            order: 'desc'
+          }
+        })
+        const data = response._data
+        if (Array.isArray(data)) {
+          this.announcements = data.map((item: any) => {
+            let categories: { id: number; name: string; slug: string }[] = []
+            const terms = item._embedded?.['wp:term']
+            if (terms && Array.isArray(terms) && terms[0] && Array.isArray(terms[0])) {
+              categories = terms[0].map((term: any) => ({
+                id: term.id,
+                name: term.name,
+                slug: term.slug,
+              }))
+            }
+            let image: string | null = null
+            const media = item._embedded?.['wp:featuredmedia']
+            if (media && Array.isArray(media) && media[0]?.source_url) {
+              image = media[0].source_url
+            }
+            return {
+              id: item.id,
+              title: item.title?.rendered || 'Без названия',
+              content: item.content?.rendered || '',
+              excerpt: item.excerpt?.rendered || '',
+              date: item.date || '',
+              link: item.link || '',
+              categories,
+              image,
+            }
+          })
+        }
+        const totalPages = response.headers?.get('x-wp-totalpages')
+        if (totalPages) this.totalAnnouncementPages = parseInt(totalPages)
+        const totalItems = response.headers?.get('x-wp-total')
+        if (totalItems) this.totalAnnouncementItems = parseInt(totalItems)
+        this.currentAnnouncementPage = page
+      } catch (err) {
+        console.error('Ошибка загрузки страницы анонсов:', err)
+        this.announcements = []
+      }
+    },
+
     async fetchSchedule() {
       const config = useRuntimeConfig()
       const wpBase = config.public.wpApi
@@ -177,7 +285,7 @@ export const useContentStore = defineStore('content', {
           const currentDate = new Date(monthCurrent)
           if (isNaN(currentDate.getTime())) continue
           const currentYear = currentDate.getFullYear()
-          const currentMonth = currentDate.getMonth() // 0-11
+          const currentMonth = currentDate.getMonth()
           const lastDayCurrent = new Date(currentYear, currentMonth + 1, 0).getDate()
 
           let nextYear = currentYear

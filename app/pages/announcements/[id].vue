@@ -1,15 +1,31 @@
 <template>
   <div class="w-full">
-    <!-- Hero -->
-    <section class="bg-gradient-to-br from-primary to-primary/80 py-20 text-white">
-      <div class="mx-auto px-4 lg:px-8 text-center container">
+    <!-- Hero с превью-фото или градиентом -->
+    <section
+      class="relative flex justify-center items-center py-20 text-white overflow-hidden"
+      :class="article.image ? '' : 'bg-gradient-to-br from-primary to-primary/80'"
+    >
+      <!-- Затемнённое превью-фото -->
+      <img
+        v-if="article.image"
+        :src="article.image"
+        :alt="article.title"
+        class="absolute inset-0 w-full h-full object-cover"
+      />
+      <div
+        class="absolute inset-0"
+        :class="article.image ? 'bg-black/60' : ''"
+      ></div>
+      <div class="relative z-10 mx-auto px-4 lg:px-8 text-center container">
         <h1 class="mb-4 font-serif text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl break-words">
           {{ article.title }}
         </h1>
-        <div class="flex justify-center gap-4 text-white/80 text-sm md:text-base">
+        <div class="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-white/80 text-sm md:text-base">
           <span>{{ formatDate(article.date) }}</span>
-          <span v-if="article.categories.length">
-            • {{ article.categories.map(c => c.name).join(', ') }}
+          <span v-if="article.categories.length" class="flex flex-wrap justify-center gap-1">
+            <span v-for="(cat, i) in article.categories" :key="cat.id">
+              <span v-if="i > 0 || article.date" class="mr-1">•</span>{{ cat.name }}
+            </span>
           </span>
         </div>
       </div>
@@ -212,6 +228,7 @@ useHead({
 </script>
 
 <style scoped>
+/* ======= Базовые стили контента ======= */
 .wp-content {
   font-size: 1.125rem;
   line-height: 1.7;
@@ -267,6 +284,7 @@ useHead({
   border-radius: 0.5rem;
 }
 
+/* Выравнивание */
 .wp-content :deep(.aligncenter) {
   text-align: center;
   display: block;
@@ -344,20 +362,22 @@ useHead({
   font-weight: 600;
 }
 
+/* Ссылки */
 .wp-content :deep(a) {
-  color: rgb(138, 45, 30); 
+  color: rgb(138, 45, 30);
   text-decoration: underline;
   transition: color 0.2s;
 }
 
 .wp-content :deep(a:hover) {
-  color: rgb(162, 85, 73); /* бордовый */
+  color: rgb(162, 85, 73);
 }
 
 .wp-content :deep(a:visited) {
   color: #7c3aed;
 }
 
+/* Адаптив */
 @media (max-width: 768px) {
   .wp-content :deep(.alignleft),
   .wp-content :deep(.alignright),

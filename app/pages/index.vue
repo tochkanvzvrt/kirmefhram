@@ -31,6 +31,7 @@
       </div>
     </section>
 
+    <!-- Расписание -->
     <section class="mx-auto px-4 lg:px-8 py-16 container">
       <h2 class="mb-8 text-green-700 text-4xl text-center">Расписание богослужений</h2>
 
@@ -60,7 +61,6 @@
             class="absolute left-0 z-10 bg-white/80 rounded-full p-2 shadow-md disabled:opacity-30 transition-opacity">
             <ChevronLeft class="w-5 h-5 text-primary" />
           </button>
-
           <div ref="scheduleSlider"
             class="flex overflow-x-auto gap-4 scroll-smooth snap-x snap-mandatory scrollbar-hide px-2"
             style="scrollbar-width: none; -ms-overflow-style: none;">
@@ -84,13 +84,11 @@
               </Card>
             </div>
           </div>
-
           <button @click="scrollSchedule(1)" :disabled="scheduleSlideIndex >= upcomingSchedule.length - 1"
             class="absolute right-0 z-10 bg-white/80 rounded-full p-2 shadow-md disabled:opacity-30 transition-opacity">
             <ChevronRight class="w-5 h-5 text-primary" />
           </button>
         </div>
-
         <div class="flex justify-center gap-2 mt-4">
           <span v-for="(item, idx) in upcomingSchedule" :key="idx"
             class="w-2 h-2 rounded-full transition-all duration-300"
@@ -112,9 +110,12 @@
       </div>
     </section>
 
+    <!-- Последние новости -->
     <section class="mx-auto px-4 lg:px-8 py-16 container">
       <h2 class="mb-8 text-primary text-4xl text-center">Последние новости</h2>
-      <div v-if="latestNews.length" class="gap-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 mx-auto mb-8 max-w-5xl">
+
+      <!-- Десктоп -->
+      <div v-if="latestNews.length" class="hidden md:grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-2 mx-auto mb-8 max-w-5xl">
         <Card v-for="news in latestNews" :key="news.id"
           class="group flex flex-col hover:shadow-xl h-full overflow-hidden transition-shadow">
           <div class="bg-muted aspect-video overflow-hidden">
@@ -141,10 +142,61 @@
           </div>
         </Card>
       </div>
+
+      <!-- Мобильный слайдер -->
+      <div v-if="latestNews.length" class="md:hidden relative">
+        <div class="flex items-center">
+          <button @click="scrollNews(-1)" :disabled="newsSlideIndex <= 0"
+            class="absolute left-0 z-10 bg-white/80 rounded-full p-2 shadow-md disabled:opacity-30 transition-opacity">
+            <ChevronLeft class="w-5 h-5 text-primary" />
+          </button>
+          <div ref="newsSlider"
+            class="flex overflow-x-auto gap-4 scroll-smooth snap-x snap-mandatory scrollbar-hide px-2"
+            style="scrollbar-width: none; -ms-overflow-style: none;">
+            <div v-for="(news, index) in latestNews" :key="news.id"
+              class="snap-center flex-shrink-0 w-[85vw] max-w-[380px]">
+              <Card class="group flex flex-col hover:shadow-lg h-full overflow-hidden transition-shadow border-2 hover:border-accent">
+                <div class="bg-muted aspect-video overflow-hidden">
+                  <img :src="news.image || '/images/question.png'" :alt="news.title"
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    @error="(e) => (e.target.src = '/images/question.png')" />
+                </div>
+                <div class="flex flex-col flex-1 p-6">
+                  <div class="flex items-center gap-2 mb-3 text-muted-foreground text-sm">
+                    <Calendar class="w-4 h-4" />
+                    <span>{{ formatDate(news.date) }}</span>
+                  </div>
+                  <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">
+                    {{ news.title }}
+                  </h3>
+                  <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">
+                    {{ stripHtml(news.excerpt || news.content) }}
+                  </p>
+                  <NuxtLink :to="`/news/${news.id}`"
+                    class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
+                    Читать полностью
+                    <ArrowRight class="w-4 h-4" />
+                  </NuxtLink>
+                </div>
+              </Card>
+            </div>
+          </div>
+          <button @click="scrollNews(1)" :disabled="newsSlideIndex >= latestNews.length - 1"
+            class="absolute right-0 z-10 bg-white/80 rounded-full p-2 shadow-md disabled:opacity-30 transition-opacity">
+            <ChevronRight class="w-5 h-5 text-primary" />
+          </button>
+        </div>
+        <div class="flex justify-center gap-2 mt-4">
+          <span v-for="(item, idx) in latestNews" :key="idx"
+            class="w-2 h-2 rounded-full transition-all duration-300"
+            :class="idx === newsSlideIndex ? 'bg-primary w-4' : 'bg-primary/30'"></span>
+        </div>
+      </div>
+
       <div v-else class="text-center text-muted-foreground">
         Нет новостей
       </div>
-      <div class="text-center">
+      <div class="text-center mt-8">
         <NuxtLink to="/news">
           <Button variant="outline" class="gap-2">
             Все новости
@@ -154,6 +206,7 @@
       </div>
     </section>
 
+    <!-- О храме -->
     <section class="py-16 border-border border-t">
       <div class="mx-auto px-4 lg:px-8 container">
         <div class="mx-auto max-w-3xl text-center">
@@ -173,6 +226,7 @@
       </div>
     </section>
 
+    <!-- Пожертвования -->
     <section class="py-6 border-border border-y">
       <div class="mx-auto px-4 lg:px-8 container">
         <div class="flex flex-col justify-between items-center gap-4 mx-auto max-w-4xl">
@@ -190,10 +244,12 @@
       </div>
     </section>
 
+    <!-- Анонсы -->
     <section class="mx-auto px-4 lg:px-8 py-16 container">
       <h2 class="mb-8 text-primary text-4xl text-center">Анонсы</h2>
-      <div v-if="latestAnnouncements.length"
-        class="gap-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 mx-auto mb-8 max-w-5xl">
+
+      <!-- Десктоп -->
+      <div v-if="latestAnnouncements.length" class="hidden md:grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-2 mx-auto mb-8 max-w-5xl">
         <Card v-for="announcement in latestAnnouncements" :key="announcement.id"
           class="group flex flex-col hover:shadow-xl h-full overflow-hidden transition-shadow">
           <div class="bg-muted aspect-video overflow-hidden">
@@ -223,10 +279,64 @@
           </div>
         </Card>
       </div>
+
+      <!-- Мобильный слайдер -->
+      <div v-if="latestAnnouncements.length" class="md:hidden relative">
+        <div class="flex items-center">
+          <button @click="scrollAnnouncements(-1)" :disabled="announcementsSlideIndex <= 0"
+            class="absolute left-0 z-10 bg-white/80 rounded-full p-2 shadow-md disabled:opacity-30 transition-opacity">
+            <ChevronLeft class="w-5 h-5 text-primary" />
+          </button>
+          <div ref="announcementsSlider"
+            class="flex overflow-x-auto gap-4 scroll-smooth snap-x snap-mandatory scrollbar-hide px-2"
+            style="scrollbar-width: none; -ms-overflow-style: none;">
+            <div v-for="(announcement, index) in latestAnnouncements" :key="announcement.id"
+              class="snap-center flex-shrink-0 w-[85vw] max-w-[380px]">
+              <Card class="group flex flex-col hover:shadow-lg h-full overflow-hidden transition-shadow border-2 hover:border-accent">
+                <div class="bg-muted aspect-video overflow-hidden">
+                  <img v-if="announcement.image" :src="announcement.image" :alt="announcement.title"
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    @error="(e) => (e.target.src = '/images/question.png')" />
+                  <div v-else class="flex justify-center items-center bg-gray-200 w-full h-full">
+                    <span class="text-gray-400 text-sm">Нет изображения</span>
+                  </div>
+                </div>
+                <div class="flex flex-col flex-1 p-6">
+                  <div class="flex items-center gap-2 mb-3 text-muted-foreground text-sm">
+                    <Calendar class="w-4 h-4" />
+                    <span>{{ formatDate(announcement.date) }}</span>
+                  </div>
+                  <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">
+                    {{ announcement.title }}
+                  </h3>
+                  <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">
+                    {{ stripHtml(announcement.content) }}
+                  </p>
+                  <NuxtLink :to="`/announcements/${announcement.id}`"
+                    class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
+                    Читать полностью
+                    <ArrowRight class="w-4 h-4" />
+                  </NuxtLink>
+                </div>
+              </Card>
+            </div>
+          </div>
+          <button @click="scrollAnnouncements(1)" :disabled="announcementsSlideIndex >= latestAnnouncements.length - 1"
+            class="absolute right-0 z-10 bg-white/80 rounded-full p-2 shadow-md disabled:opacity-30 transition-opacity">
+            <ChevronRight class="w-5 h-5 text-primary" />
+          </button>
+        </div>
+        <div class="flex justify-center gap-2 mt-4">
+          <span v-for="(item, idx) in latestAnnouncements" :key="idx"
+            class="w-2 h-2 rounded-full transition-all duration-300"
+            :class="idx === announcementsSlideIndex ? 'bg-primary w-4' : 'bg-primary/30'"></span>
+        </div>
+      </div>
+
       <div v-else class="text-center text-muted-foreground">
         Нет анонсов
       </div>
-      <div class="text-center">
+      <div class="text-center mt-8">
         <NuxtLink to="/announcements">
           <Button variant="outline" class="gap-2">
             Все анонсы
@@ -269,6 +379,10 @@ const bannerLoaded = ref(false)
 
 const scheduleSlider = ref<HTMLElement | null>(null)
 const scheduleSlideIndex = ref(0)
+const newsSlider = ref<HTMLElement | null>(null)
+const newsSlideIndex = ref(0)
+const announcementsSlider = ref<HTMLElement | null>(null)
+const announcementsSlideIndex = ref(0)
 
 const activeBanner = computed(() => {
   if (!bannersLoaded.value || bannerImages.value.length === 0) return ''
@@ -294,6 +408,26 @@ function scrollSchedule(dir: number) {
   if (newIndex < 0) newIndex = 0
   if (newIndex >= slides.length) newIndex = slides.length - 1
   scheduleSlideIndex.value = newIndex
+  slides[newIndex]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' })
+}
+
+function scrollNews(dir: number) {
+  if (!newsSlider.value) return
+  const slides = newsSlider.value.children as HTMLCollectionOf<HTMLElement>
+  let newIndex = newsSlideIndex.value + dir
+  if (newIndex < 0) newIndex = 0
+  if (newIndex >= slides.length) newIndex = slides.length - 1
+  newsSlideIndex.value = newIndex
+  slides[newIndex]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' })
+}
+
+function scrollAnnouncements(dir: number) {
+  if (!announcementsSlider.value) return
+  const slides = announcementsSlider.value.children as HTMLCollectionOf<HTMLElement>
+  let newIndex = announcementsSlideIndex.value + dir
+  if (newIndex < 0) newIndex = 0
+  if (newIndex >= slides.length) newIndex = slides.length - 1
+  announcementsSlideIndex.value = newIndex
   slides[newIndex]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' })
 }
 
