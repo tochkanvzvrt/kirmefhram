@@ -45,9 +45,57 @@ export const useContentStore = defineStore('content', {
     totalAnnouncementPages: 0,
     currentAnnouncementPage: 1,
     announcementsPerPage: 20,
+
+    // Все категории из WordPress (не только из загруженных новостей)
+    allNewsCategoriesList: [] as { id: number; name: string; slug: string }[],
+    allAnnouncementCategoriesList: [] as { id: number; name: string; slug: string }[],
   }),
 
   actions: {
+    // Загрузка всех категорий для новостей
+    async fetchAllNewsCategories() {
+      if (this.allNewsCategoriesList.length > 0) return
+      const config = useRuntimeConfig()
+      const wpBase = config.public.wpApi
+      try {
+        const data = await $fetch(`${wpBase}/wp-json/wp/v2/categories`, {
+          params: { per_page: 100, orderby: 'name', order: 'asc' }
+        })
+        if (Array.isArray(data)) {
+          this.allNewsCategoriesList = data.map((cat: any) => ({
+            id: cat.id,
+            name: cat.name,
+            slug: cat.slug,
+          }))
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки всех категорий новостей:', err)
+        this.allNewsCategoriesList = []
+      }
+    },
+
+    // Загрузка всех категорий для анонсов
+    async fetchAllAnnouncementCategories() {
+      if (this.allAnnouncementCategoriesList.length > 0) return
+      const config = useRuntimeConfig()
+      const wpBase = config.public.wpApi
+      try {
+        const data = await $fetch(`${wpBase}/wp-json/wp/v2/categories`, {
+          params: { per_page: 100, orderby: 'name', order: 'asc' }
+        })
+        if (Array.isArray(data)) {
+          this.allAnnouncementCategoriesList = data.map((cat: any) => ({
+            id: cat.id,
+            name: cat.name,
+            slug: cat.slug,
+          }))
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки всех категорий анонсов:', err)
+        this.allAnnouncementCategoriesList = []
+      }
+    },
+
     // Старый метод (для главной страницы – 20 записей)
     async fetchNews() {
       const config = useRuntimeConfig()

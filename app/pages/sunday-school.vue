@@ -5,8 +5,10 @@
         <div class="inline-flex justify-center items-center bg-white/10 mb-6 rounded-full w-20 h-20">
           <GraduationCap class="w-10 h-10" />
         </div>
-        <h1 class="mb-4 font-serif text-5xl md:text-6xl">Воскресная школа</h1>
-        <p class="opacity-90 mx-auto max-w-2xl text-xl">
+        <h1 class="mb-4 font-serif text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl break-words">
+          Воскресная школа
+        </h1>
+        <p class="opacity-90 mx-auto max-w-2xl text-lg md:text-xl">
           Духовное образование для детей и взрослых
         </p>
       </div>
@@ -39,6 +41,7 @@
       </div>
     </section>
 
+    <!-- Последние новости воскресной школы -->
     <section class="bg-white py-16">
       <div class="mx-auto px-4 lg:px-8 container">
         <h2 class="mb-8 font-serif text-primary text-4xl text-center">Новости воскресной школы</h2>
@@ -47,12 +50,12 @@
           <p class="text-muted-foreground">Загрузка...</p>
         </div>
 
-        <div v-else-if="sundaySchoolItems.length === 0" class="py-16 text-center">
-          <p class="text-muted-foreground">Новостей и анонсов пока нет</p>
+        <div v-else-if="latestSundaySchoolNews.length === 0" class="py-16 text-center">
+          <p class="text-muted-foreground">Новостей пока нет</p>
         </div>
 
         <div v-else class="gap-8 grid grid-cols-1 md:grid-cols-2 mx-auto mb-8 max-w-5xl">
-          <Card v-for="item in sundaySchoolItems" :key="`${item.type}-${item.id}`"
+          <Card v-for="item in latestSundaySchoolNews" :key="item.id"
             class="group hover:shadow-xl overflow-hidden transition-shadow">
             <div class="bg-muted aspect-video overflow-hidden">
               <img :src="item.image || '/images/question.png'" :alt="item.title"
@@ -60,14 +63,9 @@
                 @error="(e) => e.target.src = '/images/question.png'" />
             </div>
             <div class="p-6">
-              <div class="flex justify-between items-center mb-3">
-                <div class="flex items-center gap-2 text-muted-foreground text-sm">
-                  <Calendar class="w-4 h-4" />
-                  <span>{{ formatDate(item.date) }}</span>
-                </div>
-                <Badge :variant="item.type === 'announcement' ? 'secondary' : 'default'">
-                  {{ item.type === 'announcement' ? 'Анонс' : 'Новость' }}
-                </Badge>
+              <div class="flex items-center gap-2 mb-3 text-muted-foreground text-sm">
+                <Calendar class="w-4 h-4" />
+                <span>{{ formatDate(item.date) }}</span>
               </div>
               <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">
                 {{ item.title }}
@@ -75,7 +73,7 @@
               <p class="mb-4 text-muted-foreground line-clamp-3">
                 {{ stripHtml(item.excerpt || item.content) }}
               </p>
-              <NuxtLink :to="item.type === 'news' ? `/news/${item.id}` : `/announcements/${item.id}`"
+              <NuxtLink :to="`/news/${item.id}`"
                 class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
                 Читать полностью
                 <ArrowRight class="w-4 h-4" />
@@ -87,6 +85,56 @@
         <div class="text-center">
           <NuxtLink to="/news" class="inline-flex items-center gap-2 text-primary hover:underline">
             Все новости
+            <ArrowRight class="w-4 h-4" />
+          </NuxtLink>
+        </div>
+      </div>
+    </section>
+
+    <!-- Последние анонсы воскресной школы -->
+    <section class="bg-white py-16">
+      <div class="mx-auto px-4 lg:px-8 container">
+        <h2 class="mb-8 font-serif text-primary text-4xl text-center">Анонсы воскресной школы</h2>
+
+        <div v-if="loadingNews" class="py-16 text-center">
+          <p class="text-muted-foreground">Загрузка...</p>
+        </div>
+
+        <div v-else-if="latestSundaySchoolAnnouncements.length === 0" class="py-16 text-center">
+          <p class="text-muted-foreground">Анонсов пока нет</p>
+        </div>
+
+        <div v-else class="gap-8 grid grid-cols-1 md:grid-cols-2 mx-auto mb-8 max-w-5xl">
+          <Card v-for="item in latestSundaySchoolAnnouncements" :key="item.id"
+            class="group hover:shadow-xl overflow-hidden transition-shadow">
+            <div class="bg-muted aspect-video overflow-hidden">
+              <img :src="item.image || '/images/question.png'" :alt="item.title"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                @error="(e) => e.target.src = '/images/question.png'" />
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2 mb-3 text-muted-foreground text-sm">
+                <Calendar class="w-4 h-4" />
+                <span>{{ formatDate(item.date) }}</span>
+              </div>
+              <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">
+                {{ item.title }}
+              </h3>
+              <p class="mb-4 text-muted-foreground line-clamp-3">
+                {{ stripHtml(item.content) }}
+              </p>
+              <NuxtLink :to="`/announcements/${item.id}`"
+                class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
+                Читать полностью
+                <ArrowRight class="w-4 h-4" />
+              </NuxtLink>
+            </div>
+          </Card>
+        </div>
+
+        <div class="text-center">
+          <NuxtLink to="/announcements" class="inline-flex items-center gap-2 text-primary hover:underline">
+            Все анонсы
             <ArrowRight class="w-4 h-4" />
           </NuxtLink>
         </div>
@@ -156,31 +204,38 @@ onMounted(async () => {
   }
 })
 
-const sundaySchoolNews = computed(() => {
-  return store.news.filter(item =>
-    item.categories.some(cat =>
-      cat.name.toLowerCase().includes('воскресная школа') ||
-      cat.slug.includes('vokresnaya-shkola')
+// Последние 4 новости по воскресной школе
+const latestSundaySchoolNews = computed(() => {
+  return store.news
+    .filter(item =>
+      item.categories.some(cat =>
+        cat.name.toLowerCase().includes('воскресная школа') ||
+        cat.slug.includes('vokresnaya-shkola')
+      )
     )
-  )
-})
-
-const sundaySchoolAnnouncements = computed(() => {
-  return store.announcements.filter(item =>
-    item.categories.some(cat =>
-      cat.name.toLowerCase().includes('воскресная школа') ||
-      cat.slug.includes('vokresnaya-shkola')
-    )
-  )
-})
-
-const sundaySchoolItems = computed(() => {
-  const news = sundaySchoolNews.value.map(item => ({ ...item, type: 'news', title: decode(item.title || '') }))
-  const announcements = sundaySchoolAnnouncements.value.map(item => ({ ...item, type: 'announcement', title: decode(item.title || '') }))
-
-  return [...news, ...announcements]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 4)
+    .map(item => ({
+      ...item,
+      title: decode(item.title || '')
+    }))
+})
+
+// Последние 4 анонса по воскресной школе
+const latestSundaySchoolAnnouncements = computed(() => {
+  return store.announcements
+    .filter(item =>
+      item.categories.some(cat =>
+        cat.name.toLowerCase().includes('воскресная школа') ||
+        cat.slug.includes('vokresnaya-shkola')
+      )
+    )
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 4)
+    .map(item => ({
+      ...item,
+      title: decode(item.title || '')
+    }))
 })
 
 const formatDate = (dateStr: string): string => {

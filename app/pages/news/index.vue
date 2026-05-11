@@ -101,10 +101,15 @@ const store = useContentStore()
 const loading = ref(false)
 const error = ref(false)
 
+// Загружаем все категории (один раз)
+if (store.allNewsCategoriesList.length === 0) {
+  await store.fetchAllNewsCategories()
+}
+
 // Всегда загружаем первую страницу
 try {
   loading.value = true
-  await store.fetchNewsPage(1, 20)
+  await store.fetchNewsPage(1, 21)
 } catch (err) {
   console.error(err)
   error.value = true
@@ -112,20 +117,11 @@ try {
   loading.value = false
 }
 
-const categoriesList = computed(() => {
-  const cats = new Map()
-  store.news.forEach(article => {
-    article.categories.forEach(cat => {
-      if (!cats.has(cat.id)) {
-        cats.set(cat.id, { id: cat.id, name: cat.name })
-      }
-    })
-  })
-  return [
-    { id: 'all', name: 'Все новости' },
-    ...Array.from(cats.values())
-  ]
-})
+// Категории теперь из стора (все существующие)
+const categoriesList = computed(() => [
+  { id: 'all', name: 'Все новости' },
+  ...store.allNewsCategoriesList
+])
 
 const selectedCategory = ref('all')
 
@@ -149,7 +145,7 @@ async function goToCategory(catId: string) {
 async function goToPage(page: number) {
   loading.value = true
   try {
-    await store.fetchNewsPage(page, 20)
+    await store.fetchNewsPage(page, 21)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   } catch (err) {
     error.value = true
