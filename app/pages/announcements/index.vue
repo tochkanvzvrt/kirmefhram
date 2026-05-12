@@ -14,7 +14,7 @@
     </section>
 
     <!-- Фильтр категорий -->
-    <section class="top-20 z-40 sticky bg-white py-6 border-border border-b">
+    <section class="top-20 z-40 bg-white py-6 border-border border-b">
       <div class="mx-auto px-4 lg:px-8 container">
         <div class="flex flex-wrap justify-center gap-3">
           <button v-for="cat in categoriesList" :key="cat.id" @click="goToCategory(cat.id)" :class="[

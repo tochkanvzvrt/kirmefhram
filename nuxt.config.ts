@@ -1,13 +1,18 @@
 export default defineNuxtConfig({
-  ssr: true, // SSR включён для индексации
+  ssr: true,
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
   css: ['~/tailwind.css'],
   modules: ['@pinia/nuxt', '@nuxtjs/tailwindcss'],
   app: {
-    pageTransition: { name: 'page', mode: 'out-in' }
+    pageTransition: { name: 'page', mode: 'out-in' },
+    head: {
+      link: [
+        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+        { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon.ico' },
+      ]
+    }
   },
-  // Переменные окружения для API WordPress
   runtimeConfig: {
     public: {
       wpApi: process.env.WP_API_URL || 'https://admin.kirmefhram.ru'
