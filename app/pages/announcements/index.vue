@@ -57,7 +57,7 @@
                 <Calendar class="w-4 h-4 flex-shrink-0" />
                 <span>{{ formatDate(article.date) }}</span>
               </div> -->
-              <h3 class="mb-3 font-serif group-hover:text-primary text-xl transition-colors line-clamp-2">
+              <h3 class="mb-3 font-serif group-hover:text-primary text-xl transition-colors line-clamp-5">
                 {{ article.title }}
               </h3>
               <p class="mb-4 text-muted-foreground line-clamp-3 flex-1">

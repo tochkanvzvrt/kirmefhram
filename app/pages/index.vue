@@ -133,7 +133,7 @@
             </div>
             <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{ news.title }}
             </h3>
-            <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">{{ stripHtml(news.excerpt || news.content) }}</p>
+            <p class="flex-1 mb-4 text-muted-foreground line-clamp-5">{{ stripHtml(news.excerpt || news.content) }}</p>
             <NuxtLink :to="`/news/${news.id}`"
               class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
               Читать полностью
@@ -213,7 +213,7 @@
             <!-- <div class="flex items-center gap-2 mb-3 text-muted-foreground text-sm">
               <Calendar class="w-4 h-4" /><span>{{ formatDate(announcement.date) }}</span>
             </div> -->
-            <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{
+            <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-5 transition-colors">{{
               announcement.title }}</h3>
             <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">{{ stripHtml(announcement.content) }}</p>
             <NuxtLink :to="`/announcements/${announcement.id}`"
