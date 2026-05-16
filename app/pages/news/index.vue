@@ -1,517 +1,172 @@
 <template>
   <div class="w-full">
-    <section
-      class="relative flex justify-center items-center min-h-[600px] bg-gradient-to-br from-primary to-primary/80 overflow-hidden">
-      <img v-if="activeBanner" :src="activeBanner" alt="" @load="onBannerLoad"
-        class="absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-out"
-        :class="bannerImgClass" />
-      <div
-        class="absolute inset-0 bg-gradient-to-br from-primary/80 to-primary/60 transition-opacity duration-1000 ease-out"
-        :class="{ 'opacity-0': bannerLoaded, 'opacity-100': !bannerLoaded }"></div>
-
-      <div class="relative z-10 flex flex-col items-center justify-center w-full px-4 text-white text-center">
-        <h2 class="mb-2 md:mb-4 text-3xl md:text-6xl lg:text-6xl leading-tight">
-          Кирилло-Мефодиевский храм города Балашихи
-        </h2>
-        <p class="opacity-90 mb-4 md:mb-6 text-sm md:text-2xl">
-          Балашихинская епархия Русской Православной Церкви (Московский Патриархат)
+    <section class="bg-gradient-to-br from-primary to-primary/80 py-20 text-white">
+      <div class="mx-auto px-4 lg:px-8 text-center container">
+        <div class="inline-flex justify-center items-center bg-white/10 mb-6 rounded-full w-20 h-20">
+          <Newspaper class="w-10 h-10" />
+        </div>
+        <h1 class="mb-4 font-serif text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl break-words">Новости</h1>
+        <p class="opacity-90 mx-auto max-w-2xl text-lg md:text-xl">
+          События и объявления прихода
         </p>
+      </div>
+    </section>
 
-        <div class="hidden md:flex sm:flex-row flex-col justify-center gap-4 mb-6">
-          <NuxtLink to="/schedule">
-            <Button size="lg" class="bg-white hover:bg-white/90 px-8 text-primary text-lg">
-              Расписание богослужений
-            </Button>
-          </NuxtLink>
-          <NuxtLink to="/submit-note">
-            <Button size="lg" variant="outline"
-              class="bg-transparent hover:bg-white px-8 border-2 border-white text-white hover:text-primary text-lg">
-              Подать записку
-            </Button>
-          </NuxtLink>
+    <section class="top-20 z-40 bg-white py-6 border-border border-b">
+      <div class="mx-auto px-4 lg:px-8 container">
+        <div class="flex flex-wrap justify-center gap-3">
+          <button v-for="cat in categoriesList" :key="cat.id" @click="selectCategory(cat.id)" :class="[
+            'px-4 py-2 rounded-full text-sm transition-all',
+            activeCategoryId === cat.id
+              ? 'bg-primary text-white'
+              : 'bg-muted text-foreground hover:bg-primary/10',
+          ]">
+            {{ cat.name }}
+          </button>
         </div>
+      </div>
+    </section>
 
-        <div v-if="upcomingSchedule.length" class="md:hidden w-full max-w-md mt-2">
-          <div class="relative px-8">
-            <button @click="scrollSchedule(-1)" :disabled="scheduleSlideIndex <= 0"
-              class="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/20 hover:bg-white/30 rounded-full p-2 backdrop-blur disabled:opacity-30 transition">
-              <ChevronLeft class="w-5 h-5 text-white" />
-            </button>
-            <div ref="scheduleSlider" @scroll="onScheduleScroll"
-              class="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory scrollbar-hide py-2">
-              <div v-for="(item, index) in upcomingSchedule" :key="index"
-                class="snap-center flex-shrink-0 w-[75vw] max-w-[280px] bg-white/15 backdrop-blur-md rounded-xl p-4 text-left border border-white/20">
-                <div class="flex justify-between items-start mb-2">
-                  <div>
-                    <div class="font-serif text-3xl">{{ item.date }}</div>
-                    <div class="text-sm text-white/70">{{ item.month }}</div>
-                  </div>
-                  <div class="bg-accent px-2 py-1 rounded-full text-xs text-white">
-                    {{ item.day }}
-                  </div>
-                </div>
-                <hr />
-                <div v-if="item.liturgical" class="text-sm leading-relaxed schedule-text" v-html="item.liturgical">
-                </div>
-                <hr v-if="item.liturgical && item.services" />
-                <div v-if="item.services" class="text-sm mt-1 schedule-text" v-html="item.services"></div>
-                <div v-if="!item.liturgical && !item.services" class="text-sm text-white/50">Нет информации</div>
+    <section class="mx-auto px-4 lg:px-8 py-16 container">
+      <div v-if="loading" class="py-16 text-center">
+        <p class="text-muted-foreground">Загрузка новостей...</p>
+      </div>
+      <div v-else-if="error" class="py-16 text-center text-destructive">
+        <p>Ошибка загрузки новостей. Попробуйте позже.</p>
+      </div>
+      <div v-else-if="filteredNews.length === 0" class="py-16 text-center">
+        <p class="text-muted-foreground text-lg">Новостей в этой категории пока нет</p>
+      </div>
+      <div v-else class="gap-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        <NuxtLink v-for="article in filteredNews" :key="article.id" :to="`/news/${article.id}`" class="block">
+          <Card class="group hover:shadow-xl overflow-hidden transition-shadow cursor-pointer h-full flex flex-col">
+            <div class="bg-muted aspect-video overflow-hidden">
+              <img :src="article.image || '/images/question.png'" :alt="article.title"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                @error="(e) => e.target.src = '/images/question.png'" />
+            </div>
+            <div class="flex flex-col flex-1 p-6">
+              <div class="flex items-center gap-2 text-muted-foreground text-sm mb-3">
+                <Calendar class="w-4 h-4 flex-shrink-0" />
+                <span>{{ formatDate(article.date) }}</span>
               </div>
+              <h3 class="mb-3 font-serif group-hover:text-primary text-xl transition-colors line-clamp-2">
+                {{ article.title }}
+              </h3>
+              <p class="mb-4 text-muted-foreground line-clamp-3 flex-1">
+                {{ getLead(article) }}
+              </p>
+              <div v-if="article.categories.length" class="flex flex-wrap gap-1 mb-3">
+                <Badge v-for="cat in article.categories" :key="cat.id" variant="secondary" class="text-xs">
+                  {{ cat.name }}
+                </Badge>
+              </div>
+              <span class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
+                Читать полностью
+                <ArrowRight class="w-4 h-4" />
+              </span>
             </div>
-            <button @click="scrollSchedule(1)" :disabled="scheduleSlideIndex >= upcomingSchedule.length - 1"
-              class="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/20 hover:bg-white/30 rounded-full p-2 backdrop-blur disabled:opacity-30 transition">
-              <ChevronRight class="w-5 h-5 text-white" />
-            </button>
-          </div>
-          <div class="flex justify-center gap-1.5 mt-3">
-            <span v-for="(item, idx) in upcomingSchedule" :key="idx"
-              class="w-2 h-2 rounded-full transition-all duration-300"
-              :class="idx === scheduleSlideIndex ? 'bg-white w-3' : 'bg-white/30'"></span>
-          </div>
-        </div>
+          </Card>
+        </NuxtLink>
+      </div>
 
-        <div class="flex md:hidden sm:flex-row flex-col justify-center gap-3 mt-5 w-full max-w-xs">
-          <NuxtLink to="/schedule" class="w-full">
-            <Button class="bg-white hover:bg-white/90 px-6 py-3 text-primary text-base w-full">Полное
-              расписание</Button>
-          </NuxtLink>
-          <NuxtLink to="/submit-note" class="w-full">
-            <Button variant="outline"
-              class="bg-transparent hover:bg-white px-6 py-3 border-2 border-white text-white hover:text-primary text-base w-full">Подать
-              записку</Button>
-          </NuxtLink>
-        </div>
-      </div>
-    </section>
-
-    <section class="hidden md:block mx-auto px-4 lg:px-8 py-16 container">
-      <h2 class="mb-8 text-green-700 text-4xl text-center">Расписание богослужений</h2>
-      <div v-if="upcomingSchedule.length" class="hidden md:grid gap-6 grid-cols-3 mb-8">
-        <Card v-for="(item, index) in upcomingSchedule" :key="index"
-          class="transition-shadow hover:shadow-lg p-6 border-2 hover:border-accent cursor-pointer">
-          <div class="flex justify-between items-start mb-4">
-            <div>
-              <div class="font-serif text-primary text-4xl">{{ item.date }}</div>
-              <div class="text-muted-foreground text-sm">{{ item.month }}</div>
-            </div>
-            <div class="bg-accent/10 px-3 py-1 rounded-full font-medium text-accent text-sm">{{ item.day }}</div>
-          </div>
-          <hr />
-          <div v-if="item.liturgical" class="liturgical-day schedule-text" v-html="item.liturgical"></div>
-          <hr v-if="item.liturgical && item.services" />
-          <div v-if="item.services" class="services-time schedule-text" v-html="item.services"></div>
-          <div v-if="!item.liturgical && !item.services" class="text-muted-foreground text-sm">Нет информации</div>
-        </Card>
-      </div>
-      <div v-else class="text-center text-muted-foreground">Нет ближайших богослужений</div>
-      <div class="text-center mt-8">
-        <NuxtLink to="/schedule"><Button variant="outline" class="gap-2">Все расписание на месяц
-            <ArrowRight class="w-4 h-4" />
-          </Button></NuxtLink>
-      </div>
-    </section>
-
-    <section class="mx-auto px-4 lg:px-8 py-16 container">
-      <h2 class="mb-8 text-primary text-4xl text-center">Последние новости</h2>
-      <div v-if="latestNews.length"
-        class="hidden md:grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-2 mx-auto mb-8 max-w-5xl">
-        <Card v-for="news in latestNews" :key="news.id"
-          class="group flex flex-col hover:shadow-xl h-full overflow-hidden transition-shadow">
-          <div class="bg-muted aspect-video overflow-hidden">
-            <img :src="news.image || '/images/question.png'" :alt="news.title"
-              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              @error="(e) => (e.target.src = '/images/question.png')" />
-          </div>
-          <div class="flex flex-col flex-1 p-6">
-            <div class="flex items-center gap-2 mb-3 text-muted-foreground text-sm">
-              <Calendar class="w-4 h-4" /><span>{{ formatDate(news.date) }}</span>
-            </div>
-            <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{ news.title }}
-            </h3>
-            <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">{{ stripHtml(news.excerpt || news.content) }}</p>
-            <NuxtLink :to="`/news/${news.id}`"
-              class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
-              Читать полностью
-              <ArrowRight class="w-4 h-4" />
-            </NuxtLink>
-          </div>
-        </Card>
-      </div>
-      <div v-if="latestNews.length" class="md:hidden relative">
-        <div class="flex items-center">
-          <button @click="scrollNews(-1)" :disabled="newsSlideIndex <= 0"
-            class="absolute left-0 z-10 bg-white/80 rounded-full p-2 shadow-md disabled:opacity-30 transition-opacity">
-            <ChevronLeft class="w-5 h-5 text-primary" />
-          </button>
-          <div ref="newsSlider" @scroll="onNewsScroll"
-            class="flex overflow-x-auto gap-4 scroll-smooth snap-x snap-mandatory scrollbar-hide px-2"
-            style="scrollbar-width: none; -ms-overflow-style: none;">
-            <div v-for="(news, index) in latestNews" :key="news.id"
-              class="snap-center flex-shrink-0 w-[85vw] max-w-[380px]">
-              <Card
-                class="group flex flex-col hover:shadow-lg h-full overflow-hidden transition-shadow border-2 hover:border-accent">
-                <div class="bg-muted aspect-video overflow-hidden">
-                  <img :src="news.image || '/images/question.png'" :alt="news.title"
-                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    @error="(e) => (e.target.src = '/images/question.png')" />
-                </div>
-                <div class="flex flex-col flex-1 p-6">
-                  <div class="flex items-center gap-2 mb-3 text-muted-foreground text-sm">
-                    <Calendar class="w-4 h-4" /><span>{{ formatDate(news.date) }}</span>
-                  </div>
-                  <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{
-                    news.title }}</h3>
-                  <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">{{ stripHtml(news.excerpt || news.content)
-                  }}</p>
-                  <NuxtLink :to="`/news/${news.id}`"
-                    class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
-                    Читать полностью
-                    <ArrowRight class="w-4 h-4" />
-                  </NuxtLink>
-                </div>
-              </Card>
-            </div>
-          </div>
-          <button @click="scrollNews(1)" :disabled="newsSlideIndex >= latestNews.length - 1"
-            class="absolute right-0 z-10 bg-white/80 rounded-full p-2 shadow-md disabled:opacity-30 transition-opacity">
-            <ChevronRight class="w-5 h-5 text-primary" />
-          </button>
-        </div>
-        <div class="flex justify-center gap-2 mt-4">
-          <span v-for="(item, idx) in latestNews" :key="idx" class="w-2 h-2 rounded-full transition-all duration-300"
-            :class="idx === newsSlideIndex ? 'bg-primary w-4' : 'bg-primary/30'"></span>
-        </div>
-      </div>
-      <div v-else class="text-center text-muted-foreground">Нет новостей</div>
-      <div class="text-center mt-8">
-        <NuxtLink to="/news"><Button variant="outline" class="gap-2">Все новости
-            <ArrowRight class="w-4 h-4" />
-          </Button></NuxtLink>
-      </div>
-    </section>
-
-    <section class="py-16 border-border border-t">
-      <div class="mx-auto px-4 lg:px-8 container">
-        <div class="mx-auto max-w-3xl text-center">
-          <h2 class="mb-6 text-primary text-4xl">О храме</h2>
-          <p class="mb-6 text-muted-foreground text-lg leading-relaxed">
-            Кирилло-Мефодиевский храм расположен в микрорайоне Железнодорожный города
-            Балашиха. Храм освящен в честь святых равноапостольных Кирилла и Мефодия,
-            создателей славянской азбуки и проповедников христианства.
-          </p>
-          <NuxtLink to="/about"><Button class="gap-2">Читать далее
-              <ArrowRight class="w-4 h-4" />
-            </Button></NuxtLink>
-        </div>
-      </div>
-    </section>
-
-    <section class="py-6 border-border border-y">
-      <div class="mx-auto px-4 lg:px-8 container">
-        <div class="flex flex-col justify-between items-center gap-4 mx-auto max-w-4xl">
-          <div class="flex items-center gap-3 md:text-left text-center">
-            <div>
-              <p class="text-muted-foreground text-sm">Ваши пожертвования помогают храму</p>
-            </div>
-          </div>
-          <NuxtLink to="/donations"><Button class="gap-2">Поддержать храм</Button></NuxtLink>
-        </div>
-      </div>
-    </section>
-
-    <section class="mx-auto px-4 lg:px-8 py-16 container">
-      <h2 class="mb-8 text-primary text-4xl text-center">Анонсы</h2>
-      <div v-if="latestAnnouncements.length"
-        class="hidden md:grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-2 mx-auto mb-8 max-w-5xl">
-        <Card v-for="announcement in latestAnnouncements" :key="announcement.id"
-          class="group flex flex-col hover:shadow-xl h-full overflow-hidden transition-shadow">
-          <div class="bg-muted aspect-video overflow-hidden">
-            <img v-if="announcement.image" :src="announcement.image" :alt="announcement.title"
-              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              @error="(e) => (e.target.src = '/images/question.png')" />
-            <div v-else class="flex justify-center items-center bg-gray-200 w-full h-full"><span
-                class="text-gray-400 text-sm">Нет изображения</span></div>
-          </div>
-          <div class="flex flex-col flex-1 p-6">
-            <div class="flex items-center gap-2 mb-3 text-muted-foreground text-sm">
-              <Calendar class="w-4 h-4" /><span>{{ formatDate(announcement.date) }}</span>
-            </div>
-            <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{
-              announcement.title }}</h3>
-            <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">{{ stripHtml(announcement.content) }}</p>
-            <NuxtLink :to="`/announcements/${announcement.id}`"
-              class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
-              Читать полностью
-              <ArrowRight class="w-4 h-4" />
-            </NuxtLink>
-          </div>
-        </Card>
-      </div>
-      <div v-if="latestAnnouncements.length" class="md:hidden relative">
-        <div class="flex items-center">
-          <button @click="scrollAnnouncements(-1)" :disabled="announcementsSlideIndex <= 0"
-            class="absolute left-0 z-10 bg-white/80 rounded-full p-2 shadow-md disabled:opacity-30 transition-opacity">
-            <ChevronLeft class="w-5 h-5 text-primary" />
-          </button>
-          <div ref="announcementsSlider" @scroll="onAnnouncementsScroll"
-            class="flex overflow-x-auto gap-4 scroll-smooth snap-x snap-mandatory scrollbar-hide px-2"
-            style="scrollbar-width: none; -ms-overflow-style: none;">
-            <div v-for="(announcement, index) in latestAnnouncements" :key="announcement.id"
-              class="snap-center flex-shrink-0 w-[85vw] max-w-[380px]">
-              <Card
-                class="group flex flex-col hover:shadow-lg h-full overflow-hidden transition-shadow border-2 hover:border-accent">
-                <div class="bg-muted aspect-video overflow-hidden">
-                  <img v-if="announcement.image" :src="announcement.image" :alt="announcement.title"
-                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    @error="(e) => (e.target.src = '/images/question.png')" />
-                  <div v-else class="flex justify-center items-center bg-gray-200 w-full h-full"><span
-                      class="text-gray-400 text-sm">Нет изображения</span></div>
-                </div>
-                <div class="flex flex-col flex-1 p-6">
-                  <div class="flex items-center gap-2 mb-3 text-muted-foreground text-sm">
-                    <Calendar class="w-4 h-4" /><span>{{ formatDate(announcement.date) }}</span>
-                  </div>
-                  <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{
-                    announcement.title }}</h3>
-                  <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">{{ stripHtml(announcement.content) }}</p>
-                  <NuxtLink :to="`/announcements/${announcement.id}`"
-                    class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
-                    Читать полностью
-                    <ArrowRight class="w-4 h-4" />
-                  </NuxtLink>
-                </div>
-              </Card>
-            </div>
-          </div>
-          <button @click="scrollAnnouncements(1)" :disabled="announcementsSlideIndex >= latestAnnouncements.length - 1"
-            class="absolute right-0 z-10 bg-white/80 rounded-full p-2 shadow-md disabled:opacity-30 transition-opacity">
-            <ChevronRight class="w-5 h-5 text-primary" />
-          </button>
-        </div>
-        <div class="flex justify-center gap-2 mt-4">
-          <span v-for="(item, idx) in latestAnnouncements" :key="idx"
-            class="w-2 h-2 rounded-full transition-all duration-300"
-            :class="idx === announcementsSlideIndex ? 'bg-primary w-4' : 'bg-primary/30'"></span>
-        </div>
-      </div>
-      <div v-else class="text-center text-muted-foreground">Нет анонсов</div>
-      <div class="text-center mt-8">
-        <NuxtLink to="/announcements"><Button variant="outline" class="gap-2">Все анонсы
-            <ArrowRight class="w-4 h-4" />
-          </Button></NuxtLink>
+      <div v-if="store.totalNewsPages > 1" class="flex justify-center gap-2 mt-10">
+        <button v-for="page in store.totalNewsPages" :key="page" @click="goToPage(page)" :class="[
+          'px-4 py-2 rounded-lg transition',
+          page === store.currentNewsPage ? 'bg-primary text-white' : 'bg-muted hover:bg-primary/10'
+        ]">
+          {{ page }}
+        </button>
       </div>
     </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { Church, ArrowRight, Calendar, ChevronLeft, ChevronRight } from 'lucide-vue-next'
-import Button from '~/components/ui/Button.vue'
+import { ref, computed } from 'vue'
+import { Newspaper, Calendar, ArrowRight } from 'lucide-vue-next'
 import Card from '~/components/ui/Card.vue'
+import Badge from '~/components/ui/Badge.vue'
 import { useContentStore } from '~/stores/content'
 import { decode } from 'html-entities'
 
-useSeoMeta({
-  title: 'Кирилло-Мефодиевский храм Балашихи | Официальный сайт',
-  description: 'Официальный сайт Кирилло-Мефодиевского храма в микрорайоне Железнодорожный города Балашиха. Расписание богослужений, новости прихода, воскресная школа, анонсы. Балашихинская епархия Русской Православной Церкви.',
-  ogTitle: 'Кирилло-Мефодиевский храм Балашихи',
-  ogDescription: 'Расписание богослужений, новости, анонсы Кирилло-Мефодиевского храма в Балашихе',
-  ogImage: '/images/home.jpg',
-  ogUrl: 'https://kirmefhram.ru',
-})
-
 const store = useContentStore()
+const loading = ref(false)
+const error = ref(false)
 
-await callOnce('main-news', () => store.fetchNews())
-await callOnce('main-announcements', () => store.fetchAnnouncements())
-await callOnce('main-schedule', () => store.fetchSchedule())
+const activeCategoryId = ref<number | null>(null)
 
-const bannerImages = ref<string[]>([])
-const currentBannerIndex = ref(0)
-const bannersLoaded = ref(false)
-const bannerLoaded = ref(false)
+// Загружаем все категории (один раз)
+if (store.allNewsCategoriesList.length === 0) {
+  await store.fetchAllNewsCategories()
+}
 
-const scheduleSlider = ref<HTMLElement | null>(null)
-const scheduleSlideIndex = ref(0)
-const newsSlider = ref<HTMLElement | null>(null)
-const newsSlideIndex = ref(0)
-const announcementsSlider = ref<HTMLElement | null>(null)
-const announcementsSlideIndex = ref(0)
+const categoriesList = computed(() => [
+  { id: null, name: 'Все новости' },
+  ...store.allNewsCategoriesList.filter(cat => cat.id !== 1)
+])
 
-const activeBanner = computed(() => {
-  if (!bannersLoaded.value || bannerImages.value.length === 0) return ''
-  return bannerImages.value[currentBannerIndex.value] || bannerImages.value[0] || ''
+// Первая загрузка
+try {
+  loading.value = true
+  await store.fetchNewsPage(1, 21)
+} catch (err) {
+  console.error(err)
+  error.value = true
+} finally {
+  loading.value = false
+}
+
+const filteredNews = computed(() => {
+  return (store.news || []).map(item => ({
+    ...item,
+    title: decode(item.title || '')
+  }))
 })
 
-const bannerImgClass = computed(() => bannerLoaded.value ? 'blur-0' : 'blur-xl')
-
-function onBannerLoad() { bannerLoaded.value = true }
-watch(currentBannerIndex, () => { bannerLoaded.value = false })
-
-function scrollSchedule(dir: number) {
-  if (!scheduleSlider.value) return
-  const slides = scheduleSlider.value.children as HTMLCollectionOf<HTMLElement>
-  let newIndex = scheduleSlideIndex.value + dir
-  if (newIndex < 0) newIndex = 0
-  if (newIndex >= slides.length) newIndex = slides.length - 1
-  scheduleSlideIndex.value = newIndex
-  slides[newIndex]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' })
-}
-
-function scrollNews(dir: number) {
-  if (!newsSlider.value) return
-  const slides = newsSlider.value.children as HTMLCollectionOf<HTMLElement>
-  let newIndex = newsSlideIndex.value + dir
-  if (newIndex < 0) newIndex = 0
-  if (newIndex >= slides.length) newIndex = slides.length - 1
-  newsSlideIndex.value = newIndex
-  slides[newIndex]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' })
-}
-
-function scrollAnnouncements(dir: number) {
-  if (!announcementsSlider.value) return
-  const slides = announcementsSlider.value.children as HTMLCollectionOf<HTMLElement>
-  let newIndex = announcementsSlideIndex.value + dir
-  if (newIndex < 0) newIndex = 0
-  if (newIndex >= slides.length) newIndex = slides.length - 1
-  announcementsSlideIndex.value = newIndex
-  slides[newIndex]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' })
-}
-
-function onScheduleScroll() {
-  if (!scheduleSlider.value) return
-  scheduleSlideIndex.value = Math.round(scheduleSlider.value.scrollLeft / scheduleSlider.value.clientWidth)
-}
-
-function onNewsScroll() {
-  if (!newsSlider.value) return
-  newsSlideIndex.value = Math.round(newsSlider.value.scrollLeft / newsSlider.value.clientWidth)
-}
-
-function onAnnouncementsScroll() {
-  if (!announcementsSlider.value) return
-  announcementsSlideIndex.value = Math.round(announcementsSlider.value.scrollLeft / announcementsSlider.value.clientWidth)
-}
-
-let rotationTimer: ReturnType<typeof setInterval> | null = null
-
-const fetchBanners = async () => {
+async function selectCategory(catId: number | null) {
+  activeCategoryId.value = catId
+  loading.value = true
   try {
-    const config = useRuntimeConfig()
-    const wpBase = config.public.wpApi
-    const res = await fetch(`${wpBase}/wp-json/wp/v2/banner`)
-    const banners = await res.json()
-    const images: string[] = []
-    for (const item of banners) {
-      if (item.banner?.guid) images.push(item.banner.guid)
-      if (item.banner2?.guid) images.push(item.banner2.guid)
-    }
-    if (images.length > 0) {
-      bannerImages.value = images
-      bannersLoaded.value = true
-      currentBannerIndex.value = Math.floor(Math.random() * images.length)
-    }
-  } catch (err) { console.error('fetchBanners error:', err) }
+    await store.fetchNewsPage(1, 21, catId ?? undefined)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  } catch (err) {
+    error.value = true
+  } finally {
+    loading.value = false
+  }
 }
 
-const startRotation = () => {
-  rotationTimer = setInterval(() => {
-    if (bannerImages.value.length > 1) {
-      currentBannerIndex.value = (currentBannerIndex.value + 1) % bannerImages.value.length
-    }
-  }, 60000)
+async function goToPage(page: number) {
+  loading.value = true
+  try {
+    await store.fetchNewsPage(page, 21, activeCategoryId.value ?? undefined)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  } catch (err) {
+    error.value = true
+  } finally {
+    loading.value = false
+  }
 }
 
-onMounted(() => { fetchBanners().then(() => { startRotation() }) })
-onUnmounted(() => { if (rotationTimer) clearInterval(rotationTimer) })
-
-// ✅ Теперь используем feedNews (лента)
-const latestNews = computed(() => {
-  const news = store.feedNews || []
-  return [...news].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4).map(item => ({ ...item, title: decode(item.title || '') }))
-})
-
-// ✅ Теперь используем feedAnnouncements (лента)
-const latestAnnouncements = computed(() => {
-  const announcements = store.feedAnnouncements || []
-  return [...announcements].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4).map(item => ({ ...item, title: decode(item.title || '') }))
-})
-
-const upcomingSchedule = computed(() => {
-  const filled = store.filledScheduleForTodayAndNextTwo || []
-  const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
-  return filled.map(item => {
-    const monthNum = parseInt(item.fullDate?.split('-')[1] || '0', 10)
-    return { date: item.date || '', month: monthNames[monthNum - 1] || '', day: item.day || '', liturgical: item.liturgical || '', services: item.services || '' }
-  })
-})
-
-const formatDate = (dateStr: string): string => {
+const formatDate = (dateStr: string) => {
   if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 const stripHtml = (html: string): string => {
   if (!html) return ''
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 }
+
+const getLead = (article: any) => {
+  const text = article.excerpt && article.excerpt !== '' ? article.excerpt : article.content
+  return stripHtml(text).slice(0, 250)
+}
+
+useHead({
+  title: 'Новости | Кирилло-Мефодиевский храм',
+  meta: [{ name: 'description', content: 'Новости и события Кирилло-Мефодиевского храма города Балашихи.' }]
+})
 </script>
-
-<style scoped>
-.schedule-text {
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  line-height: 1.5;
-}
-
-.schedule-text :deep(strong),
-.schedule-text :deep(b) {
-  font-weight: 700 !important;
-}
-
-.schedule-text :deep(em),
-.schedule-text :deep(i) {
-  font-style: italic !important;
-}
-
-.liturgical-day {
-  font-size: 1.125rem;
-  font-weight: 500;
-  margin-bottom: 1rem;
-}
-
-.liturgical-day :deep(p) {
-  margin: 0 0 0.75rem 0;
-}
-
-.liturgical-day :deep(strong),
-.liturgical-day :deep(b) {
-  font-size: 1.25rem;
-  font-weight: 700 !important;
-}
-
-.services-time {
-  font-size: 0.95rem;
-}
-
-.services-time :deep(p) {
-  margin: 0.5rem 0;
-}
-
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-hr {
-  border: none;
-  height: 0.5px;
-  background-color: rgb(138, 45, 30);
-  margin: 0.75rem 0;
-}
-</style>
