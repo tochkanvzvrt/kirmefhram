@@ -283,12 +283,29 @@ useHead({
   margin-bottom: 0.75em;
 }
 
-.wp-content :deep(h1) { font-size: 2rem; }
-.wp-content :deep(h2) { font-size: 1.75rem; }
-.wp-content :deep(h3) { font-size: 1.5rem; }
-.wp-content :deep(h4) { font-size: 1.25rem; }
-.wp-content :deep(h5) { font-size: 1rem; }
-.wp-content :deep(h6) { font-size: 0.875rem; }
+.wp-content :deep(h1) {
+  font-size: 2rem;
+}
+
+.wp-content :deep(h2) {
+  font-size: 1.75rem;
+}
+
+.wp-content :deep(h3) {
+  font-size: 1.5rem;
+}
+
+.wp-content :deep(h4) {
+  font-size: 1.25rem;
+}
+
+.wp-content :deep(h5) {
+  font-size: 1rem;
+}
+
+.wp-content :deep(h6) {
+  font-size: 0.875rem;
+}
 
 .wp-content :deep(strong),
 .wp-content :deep(b) {
@@ -409,8 +426,133 @@ useHead({
   color: #7c3aed;
 }
 
+.wp-content :deep(.has-text-align-center) {
+  text-align: center;
+}
+
+.wp-content :deep(.has-text-align-right) {
+  text-align: right;
+}
+
+.wp-content :deep(.has-text-align-left) {
+  text-align: left;
+}
+
+/* Все варианты выравнивания текста из админки */
+.wp-content :deep(.has-text-align-left) {
+  text-align: left;
+}
+
+.wp-content :deep(.has-text-align-center) {
+  text-align: center;
+}
+
+.wp-content :deep(.has-text-align-right) {
+  text-align: right;
+}
+
+.wp-content :deep(.has-text-align-justify) {
+  text-align: justify;
+}
+
+/* Выравнивание для заголовков */
+.wp-content :deep(h1.has-text-align-left),
+.wp-content :deep(h2.has-text-align-left),
+.wp-content :deep(h3.has-text-align-left),
+.wp-content :deep(h4.has-text-align-left),
+.wp-content :deep(h5.has-text-align-left),
+.wp-content :deep(h6.has-text-align-left) {
+  text-align: left;
+}
+
+.wp-content :deep(h1.has-text-align-center),
+.wp-content :deep(h2.has-text-align-center),
+.wp-content :deep(h3.has-text-align-center),
+.wp-content :deep(h4.has-text-align-center),
+.wp-content :deep(h5.has-text-align-center),
+.wp-content :deep(h6.has-text-align-center) {
+  text-align: center;
+}
+
+.wp-content :deep(h1.has-text-align-right),
+.wp-content :deep(h2.has-text-align-right),
+.wp-content :deep(h3.has-text-align-right),
+.wp-content :deep(h4.has-text-align-right),
+.wp-content :deep(h5.has-text-align-right),
+.wp-content :deep(h6.has-text-align-right) {
+  text-align: right;
+}
+
+/* Цвета текста */
+.wp-content :deep(.has-primary-color) {
+  color: var(--wp--preset--color--primary, #1a3a5c);
+}
+
+.wp-content :deep(.has-secondary-color) {
+  color: var(--wp--preset--color--secondary, #6b7280);
+}
+
+.wp-content :deep(.has-text-color) {
+  color: inherit;
+}
+
+/* Размеры текста */
+.wp-content :deep(.has-small-font-size) {
+  font-size: 0.875rem;
+}
+
+.wp-content :deep(.has-medium-font-size) {
+  font-size: 1.25rem;
+}
+
+.wp-content :deep(.has-large-font-size) {
+  font-size: 1.5rem;
+}
+
+.wp-content :deep(.has-x-large-font-size) {
+  font-size: 2rem;
+}
+
+/* Кнопки из Гутенберга */
+.wp-content :deep(.wp-block-button__link) {
+  display: inline-block;
+  padding: 0.75em 1.5em;
+  border-radius: 0.5rem;
+  background-color: var(--primary, #1a3a5c);
+  color: #fff;
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+
+.wp-content :deep(.wp-block-button__link:hover) {
+  background-color: var(--primary-dark, #152d4a);
+}
+
+/* Цитаты */
+.wp-content :deep(.wp-block-quote) {
+  border-left: 4px solid var(--primary, #1a3a5c);
+  padding-left: 1em;
+  margin: 1.5em 0;
+  font-style: italic;
+  color: #4a5568;
+}
+
+/* Разделители */
+.wp-content :deep(.wp-block-separator) {
+  border: none;
+  height: 2px;
+  background-color: #e2e8f0;
+  margin: 2em 0;
+}
+
+/* Списки с галочками и другие */
+.wp-content :deep(.wp-block-list) {
+  list-style-position: inside;
+}
+
 /* Адаптив */
 @media (max-width: 768px) {
+
   .wp-content :deep(.alignleft),
   .wp-content :deep(.alignright),
   .wp-content :deep(figure.alignleft),
