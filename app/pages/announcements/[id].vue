@@ -21,7 +21,7 @@
           {{ article.title }}
         </h1>
         <div class="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-white/80 text-sm md:text-base">
-          <span>{{ formatDate(article.date) }}</span>
+          <!-- <span>{{ formatDate(article.date) }}</span> -->
           <span v-if="article.categories.length" class="flex flex-wrap justify-center gap-1">
             <span v-for="(cat, i) in article.categories" :key="cat.id">
               <span v-if="i > 0 || article.date" class="mr-1">•</span>{{ cat.name }}

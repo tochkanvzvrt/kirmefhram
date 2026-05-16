@@ -53,10 +53,10 @@
               </div>
             </div>
             <div class="flex flex-col flex-1 p-6">
-              <div class="flex items-center gap-2 text-muted-foreground text-sm mb-3">
+              <!-- <div class="flex items-center gap-2 text-muted-foreground text-sm mb-3">
                 <Calendar class="w-4 h-4 flex-shrink-0" />
                 <span>{{ formatDate(article.date) }}</span>
-              </div>
+              </div> -->
               <h3 class="mb-3 font-serif group-hover:text-primary text-xl transition-colors line-clamp-2">
                 {{ article.title }}
               </h3>

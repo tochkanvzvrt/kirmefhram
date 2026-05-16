@@ -34,8 +34,8 @@
         <!-- Мобильные кнопки на баннере -->
         <div class="flex md:hidden sm:flex-row flex-col justify-center gap-3 mt-5 w-full max-w-xs">
           <NuxtLink to="/schedule" class="w-full">
-            <Button class="bg-white hover:bg-white/90 px-6 py-3 text-primary text-base w-full">Полное
-              расписание</Button>
+            <Button class="bg-white hover:bg-white/90 px-6 py-3 text-primary text-base w-full">Расписание
+              богослужений</Button>
           </NuxtLink>
           <NuxtLink to="/submit-note" class="w-full">
             <Button variant="outline"
@@ -167,7 +167,7 @@
                   <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{
                     news.title }}</h3>
                   <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">{{ stripHtml(news.excerpt || news.content)
-                    }}</p>
+                  }}</p>
                   <NuxtLink :to="`/news/${news.id}`"
                     class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
                     Читать полностью
@@ -195,37 +195,6 @@
       </div>
     </section>
 
-    <!-- О храме -->
-    <section class="py-16 border-border border-t">
-      <div class="mx-auto px-4 lg:px-8 container">
-        <div class="mx-auto max-w-3xl text-center">
-          <h2 class="mb-6 text-primary text-4xl">О храме</h2>
-          <p class="mb-6 text-muted-foreground text-lg leading-relaxed">
-            Кирилло-Мефодиевский храм расположен в микрорайоне Железнодорожный города
-            Балашиха. Храм освящен в честь святых равноапостольных Кирилла и Мефодия,
-            создателей славянской азбуки и проповедников христианства.
-          </p>
-          <NuxtLink to="/about"><Button class="gap-2">Читать далее
-              <ArrowRight class="w-4 h-4" />
-            </Button></NuxtLink>
-        </div>
-      </div>
-    </section>
-
-    <!-- Пожертвования -->
-    <section class="py-6 border-border border-y">
-      <div class="mx-auto px-4 lg:px-8 container">
-        <div class="flex flex-col justify-between items-center gap-4 mx-auto max-w-4xl">
-          <div class="flex items-center gap-3 md:text-left text-center">
-            <div>
-              <p class="text-muted-foreground text-sm">Ваши пожертвования помогают храму</p>
-            </div>
-          </div>
-          <NuxtLink to="/donations"><Button class="gap-2">Поддержать храм</Button></NuxtLink>
-        </div>
-      </div>
-    </section>
-
     <!-- Анонсы -->
     <section class="mx-auto px-4 lg:px-8 py-16 container">
       <h2 class="mb-8 text-primary text-4xl text-center">Анонсы</h2>
@@ -241,9 +210,9 @@
                 class="text-gray-400 text-sm">Нет изображения</span></div>
           </div>
           <div class="flex flex-col flex-1 p-6">
-            <div class="flex items-center gap-2 mb-3 text-muted-foreground text-sm">
+            <!-- <div class="flex items-center gap-2 mb-3 text-muted-foreground text-sm">
               <Calendar class="w-4 h-4" /><span>{{ formatDate(announcement.date) }}</span>
-            </div>
+            </div> -->
             <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{
               announcement.title }}</h3>
             <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">{{ stripHtml(announcement.content) }}</p>
@@ -307,6 +276,37 @@
         <NuxtLink to="/announcements"><Button variant="outline" class="gap-2">Все анонсы
             <ArrowRight class="w-4 h-4" />
           </Button></NuxtLink>
+      </div>
+    </section>
+
+    <!-- О храме -->
+    <section class="py-16 border-border border-t">
+      <div class="mx-auto px-4 lg:px-8 container">
+        <div class="mx-auto max-w-3xl text-center">
+          <h2 class="mb-6 text-primary text-4xl">О храме</h2>
+          <p class="mb-6 text-muted-foreground text-lg leading-relaxed">
+            Кирилло-Мефодиевский храм расположен в микрорайоне Железнодорожный города
+            Балашиха. Храм освящен в честь святых равноапостольных Кирилла и Мефодия,
+            создателей славянской азбуки и проповедников христианства.
+          </p>
+          <NuxtLink to="/about"><Button class="gap-2">Читать далее
+              <ArrowRight class="w-4 h-4" />
+            </Button></NuxtLink>
+        </div>
+      </div>
+    </section>
+
+    <!-- Пожертвования -->
+    <section class="py-6 border-border border-y">
+      <div class="mx-auto px-4 lg:px-8 container">
+        <div class="flex flex-col justify-between items-center gap-4 mx-auto max-w-4xl">
+          <div class="flex items-center gap-3 md:text-left text-center">
+            <div>
+              <p class="text-muted-foreground text-sm">Ваши пожертвования помогают храму</p>
+            </div>
+          </div>
+          <NuxtLink to="/donations"><Button class="gap-2">Поддержать храм</Button></NuxtLink>
+        </div>
       </div>
     </section>
   </div>
