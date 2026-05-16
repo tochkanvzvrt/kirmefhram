@@ -245,9 +245,9 @@
                       class="text-gray-400 text-sm">Нет изображения</span></div>
                 </div>
                 <div class="flex flex-col flex-1 p-6">
-                  <div class="flex items-center gap-2 mb-3 text-muted-foreground text-sm">
+                  <!-- <div class="flex items-center gap-2 mb-3 text-muted-foreground text-sm">
                     <Calendar class="w-4 h-4" /><span>{{ formatDate(announcement.date) }}</span>
-                  </div>
+                  </div> -->
                   <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{
                     announcement.title }}</h3>
                   <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">{{ stripHtml(announcement.content) }}</p>
