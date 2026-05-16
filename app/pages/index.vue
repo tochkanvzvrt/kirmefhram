@@ -31,43 +31,7 @@
           </NuxtLink>
         </div>
 
-        <div v-if="upcomingSchedule.length" class="md:hidden w-full max-w-md mt-2">
-          <div class="relative px-8">
-            <button @click="scrollSchedule(-1)" :disabled="scheduleSlideIndex <= 0"
-              class="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/20 hover:bg-white/30 rounded-full p-2 backdrop-blur disabled:opacity-30 transition">
-              <ChevronLeft class="w-5 h-5 text-white" />
-            </button>
-            <div ref="scheduleSlider" @scroll="onScheduleScroll"
-              class="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory scrollbar-hide py-2">
-              <div v-for="(item, index) in upcomingSchedule" :key="index"
-                class="snap-center flex-shrink-0 w-[75vw] max-w-[280px] bg-white/15 backdrop-blur-md rounded-xl p-4 text-left border border-white/20">
-                <div class="flex justify-between items-start mb-2">
-                  <div>
-                    <div class="font-serif text-3xl">{{ item.date }}</div>
-                    <div class="text-sm text-white/70">{{ item.month }}</div>
-                  </div>
-                  <div class="bg-accent/30 px-2 py-1 rounded-full text-xs text-accent">{{ item.day }}</div>
-                </div>
-                <hr />
-                <div v-if="item.liturgical" class="text-sm leading-relaxed schedule-text" v-html="item.liturgical">
-                </div>
-                <hr v-if="item.liturgical && item.services" />
-                <div v-if="item.services" class="text-sm mt-1 schedule-text" v-html="item.services"></div>
-                <div v-if="!item.liturgical && !item.services" class="text-sm text-white/50">Нет информации</div>
-              </div>
-            </div>
-            <button @click="scrollSchedule(1)" :disabled="scheduleSlideIndex >= upcomingSchedule.length - 1"
-              class="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/20 hover:bg-white/30 rounded-full p-2 backdrop-blur disabled:opacity-30 transition">
-              <ChevronRight class="w-5 h-5 text-white" />
-            </button>
-          </div>
-          <div class="flex justify-center gap-1.5 mt-3">
-            <span v-for="(item, idx) in upcomingSchedule" :key="idx"
-              class="w-2 h-2 rounded-full transition-all duration-300"
-              :class="idx === scheduleSlideIndex ? 'bg-white w-3' : 'bg-white/30'"></span>
-          </div>
-        </div>
-
+        <!-- Мобильные кнопки на баннере -->
         <div class="flex md:hidden sm:flex-row flex-col justify-center gap-3 mt-5 w-full max-w-xs">
           <NuxtLink to="/schedule" class="w-full">
             <Button class="bg-white hover:bg-white/90 px-6 py-3 text-primary text-base w-full">Полное
@@ -82,8 +46,10 @@
       </div>
     </section>
 
-    <section class="hidden md:block mx-auto px-4 lg:px-8 py-16 container">
+    <!-- Расписание (десктоп и мобильный слайдер) -->
+    <section class="mx-auto px-4 lg:px-8 py-16 container">
       <h2 class="mb-8 text-green-700 text-4xl text-center">Расписание богослужений</h2>
+      <!-- Десктоп -->
       <div v-if="upcomingSchedule.length" class="hidden md:grid gap-6 grid-cols-3 mb-8">
         <Card v-for="(item, index) in upcomingSchedule" :key="index"
           class="transition-shadow hover:shadow-lg p-6 border-2 hover:border-accent cursor-pointer">
@@ -101,6 +67,46 @@
           <div v-if="!item.liturgical && !item.services" class="text-muted-foreground text-sm">Нет информации</div>
         </Card>
       </div>
+      <!-- Мобильный слайдер -->
+      <div v-if="upcomingSchedule.length" class="md:hidden relative">
+        <div class="flex items-center">
+          <button @click="scrollSchedule(-1)" :disabled="scheduleSlideIndex <= 0"
+            class="absolute left-0 z-10 bg-white/80 rounded-full p-2 shadow-md disabled:opacity-30 transition-opacity">
+            <ChevronLeft class="w-5 h-5 text-primary" />
+          </button>
+          <div ref="scheduleSlider" @scroll="onScheduleScroll"
+            class="flex overflow-x-auto gap-4 scroll-smooth snap-x snap-mandatory scrollbar-hide px-2"
+            style="scrollbar-width: none; -ms-overflow-style: none;">
+            <div v-for="(item, index) in upcomingSchedule" :key="index"
+              class="snap-center flex-shrink-0 w-[85vw] max-w-[380px]">
+              <Card class="transition-shadow hover:shadow-lg p-6 border-2 hover:border-accent cursor-pointer h-full">
+                <div class="flex justify-between items-start mb-4">
+                  <div>
+                    <div class="font-serif text-primary text-4xl">{{ item.date }}</div>
+                    <div class="text-muted-foreground text-sm">{{ item.month }}</div>
+                  </div>
+                  <div class="bg-accent/10 px-3 py-1 rounded-full font-medium text-accent text-sm">{{ item.day }}</div>
+                </div>
+                <hr />
+                <div v-if="item.liturgical" class="liturgical-day schedule-text" v-html="item.liturgical"></div>
+                <hr v-if="item.liturgical && item.services" />
+                <div v-if="item.services" class="services-time schedule-text" v-html="item.services"></div>
+                <div v-if="!item.liturgical && !item.services" class="text-muted-foreground text-sm">Нет информации
+                </div>
+              </Card>
+            </div>
+          </div>
+          <button @click="scrollSchedule(1)" :disabled="scheduleSlideIndex >= upcomingSchedule.length - 1"
+            class="absolute right-0 z-10 bg-white/80 rounded-full p-2 shadow-md disabled:opacity-30 transition-opacity">
+            <ChevronRight class="w-5 h-5 text-primary" />
+          </button>
+        </div>
+        <div class="flex justify-center gap-2 mt-4">
+          <span v-for="(item, idx) in upcomingSchedule" :key="idx"
+            class="w-2 h-2 rounded-full transition-all duration-300"
+            :class="idx === scheduleSlideIndex ? 'bg-primary w-4' : 'bg-primary/30'"></span>
+        </div>
+      </div>
       <div v-else class="text-center text-muted-foreground">Нет ближайших богослужений</div>
       <div class="text-center mt-8">
         <NuxtLink to="/schedule"><Button variant="outline" class="gap-2">Все расписание на месяц
@@ -109,6 +115,7 @@
       </div>
     </section>
 
+    <!-- Последние новости -->
     <section class="mx-auto px-4 lg:px-8 py-16 container">
       <h2 class="mb-8 text-primary text-4xl text-center">Последние новости</h2>
       <div v-if="latestNews.length"
@@ -188,6 +195,7 @@
       </div>
     </section>
 
+    <!-- О храме -->
     <section class="py-16 border-border border-t">
       <div class="mx-auto px-4 lg:px-8 container">
         <div class="mx-auto max-w-3xl text-center">
@@ -204,6 +212,7 @@
       </div>
     </section>
 
+    <!-- Пожертвования -->
     <section class="py-6 border-border border-y">
       <div class="mx-auto px-4 lg:px-8 container">
         <div class="flex flex-col justify-between items-center gap-4 mx-auto max-w-4xl">
@@ -217,6 +226,7 @@
       </div>
     </section>
 
+    <!-- Анонсы -->
     <section class="mx-auto px-4 lg:px-8 py-16 container">
       <h2 class="mb-8 text-primary text-4xl text-center">Анонсы</h2>
       <div v-if="latestAnnouncements.length"
@@ -321,9 +331,15 @@ useSeoMeta({
 
 const store = useContentStore()
 
-await callOnce('main-news', () => store.fetchNews())
-await callOnce('main-announcements', () => store.fetchAnnouncements())
-await callOnce('main-schedule', () => store.fetchSchedule())
+if (import.meta.server || store.feedNews.length === 0) {
+  await store.fetchNews()
+}
+if (import.meta.server || store.feedAnnouncements.length === 0) {
+  await store.fetchAnnouncements()
+}
+if (import.meta.server || store.schedule.length === 0) {
+  await store.fetchSchedule()
+}
 
 const bannerImages = ref<string[]>([])
 const currentBannerIndex = ref(0)
@@ -425,12 +441,12 @@ onMounted(() => { fetchBanners().then(() => { startRotation() }) })
 onUnmounted(() => { if (rotationTimer) clearInterval(rotationTimer) })
 
 const latestNews = computed(() => {
-  const news = store.news || []
+  const news = store.feedNews || []
   return [...news].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4).map(item => ({ ...item, title: decode(item.title || '') }))
 })
 
 const latestAnnouncements = computed(() => {
-  const announcements = store.announcements || []
+  const announcements = store.feedAnnouncements || []
   return [...announcements].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4).map(item => ({ ...item, title: decode(item.title || '') }))
 })
 
