@@ -17,9 +17,9 @@
     <section class="top-20 z-40 bg-white py-6 border-border border-b">
       <div class="mx-auto px-4 lg:px-8 container">
         <div class="flex flex-wrap justify-center gap-3">
-          <button v-for="cat in categoriesList" :key="cat.id" @click="goToCategory(cat.id)" :class="[
+          <button v-for="cat in categoriesList" :key="cat.id" @click="selectCategory(cat.id)" :class="[
             'px-4 py-2 rounded-full text-sm transition-all',
-            selectedCategory === cat.id
+            activeCategoryId === cat.id
               ? 'bg-primary text-white'
               : 'bg-muted text-foreground hover:bg-primary/10',
           ]">
@@ -80,15 +80,10 @@
 
       <!-- ПАГИНАЦИЯ -->
       <div v-if="store.totalAnnouncementPages > 1" class="flex justify-center gap-2 mt-10">
-        <button
-          v-for="page in store.totalAnnouncementPages"
-          :key="page"
-          @click="goToPage(page)"
-          :class="[
-            'px-4 py-2 rounded-lg transition',
-            page === store.currentAnnouncementPage ? 'bg-primary text-white' : 'bg-muted hover:bg-primary/10'
-          ]"
-        >
+        <button v-for="page in store.totalAnnouncementPages" :key="page" @click="goToPage(page)" :class="[
+          'px-4 py-2 rounded-lg transition',
+          page === store.currentAnnouncementPage ? 'bg-primary text-white' : 'bg-muted hover:bg-primary/10'
+        ]">
           {{ page }}
         </button>
       </div>
@@ -108,12 +103,21 @@ const store = useContentStore()
 const loading = ref(false)
 const error = ref(false)
 
+// Активная категория (null = все)
+const activeCategoryId = ref<number | null>(null)
+
 // Загружаем все категории (один раз)
 if (store.allAnnouncementCategoriesList.length === 0) {
   await store.fetchAllAnnouncementCategories()
 }
 
-// Всегда загружаем первую страницу
+// Категории: исключаем «Без рубрики»
+const categoriesList = computed(() => [
+  { id: null, name: 'Все анонсы' },
+  ...store.allAnnouncementCategoriesList.filter(cat => cat.id !== 1)
+])
+
+// Первая загрузка
 try {
   loading.value = true
   await store.fetchAnnouncementsPage(1, 21)
@@ -124,35 +128,30 @@ try {
   loading.value = false
 }
 
-// Категории теперь из стора (все существующие)
-const categoriesList = computed(() => [
-  { id: 'all', name: 'Все анонсы' },
-  ...store.allAnnouncementCategoriesList
-])
-
-const selectedCategory = ref('all')
-
 const filteredAnnouncements = computed(() => {
-  let items = store.announcements || []
-  if (selectedCategory.value !== 'all') {
-    items = items.filter(article =>
-      article.categories.some(cat => cat.id === selectedCategory.value)
-    )
-  }
-  return items.map(item => ({
+  return (store.announcements || []).map(item => ({
     ...item,
     title: decode(item.title || '')
   }))
 })
 
-async function goToCategory(catId: string) {
-  selectedCategory.value = catId
+async function selectCategory(catId: number | null) {
+  activeCategoryId.value = catId
+  loading.value = true
+  try {
+    await store.fetchAnnouncementsPage(1, 21, catId ?? undefined)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  } catch (err) {
+    error.value = true
+  } finally {
+    loading.value = false
+  }
 }
 
 async function goToPage(page: number) {
   loading.value = true
   try {
-    await store.fetchAnnouncementsPage(page, 21)
+    await store.fetchAnnouncementsPage(page, 21, activeCategoryId.value ?? undefined)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   } catch (err) {
     error.value = true

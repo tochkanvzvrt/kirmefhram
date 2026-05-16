@@ -46,8 +46,8 @@
       <div class="mx-auto px-4 lg:px-8 container">
         <h2 class="mb-8 font-serif text-primary text-4xl text-center">Новости молодёжного кружка</h2>
 
-        <div v-if="loadingNews" class="py-16 text-center">
-          <p class="text-muted-foreground">Загрузка...</p>
+        <div v-if="loadingYouthNews" class="py-16 text-center">
+          <p class="text-muted-foreground">Загрузка новостей...</p>
         </div>
 
         <div v-else-if="latestYouthNews.length === 0" class="py-16 text-center">
@@ -96,8 +96,8 @@
       <div class="mx-auto px-4 lg:px-8 container">
         <h2 class="mb-8 font-serif text-primary text-4xl text-center">Анонсы молодёжного кружка</h2>
 
-        <div v-if="loadingNews" class="py-16 text-center">
-          <p class="text-muted-foreground">Загрузка...</p>
+        <div v-if="loadingYouthAnnouncements" class="py-16 text-center">
+          <p class="text-muted-foreground">Загрузка анонсов...</p>
         </div>
 
         <div v-else-if="latestYouthAnnouncements.length === 0" class="py-16 text-center">
@@ -153,10 +153,13 @@ import { decode } from 'html-entities'
 
 const store = useContentStore()
 const loading = ref(true)
-const loadingNews = ref(false)
+const loadingYouthNews = ref(false)
+const loadingYouthAnnouncements = ref(false)
 
 const youthClubText = ref<string>('')
 const joinText = ref<string>('')
+
+const YOUTH_CATEGORY_ID = 4 // ID категории «Молодёжный кружок» в WordPress
 
 const formatText = (text: string): string => {
   if (!text) return ''
@@ -191,53 +194,99 @@ const fetchYouthClub = async () => {
   }
 }
 
-onMounted(async () => {
-  await fetchYouthClub()
-
-  if (store.news.length === 0 || store.announcements.length === 0) {
-    loadingNews.value = true
-    await Promise.all([
-      store.news.length === 0 ? store.fetchNews() : Promise.resolve(),
-      store.announcements.length === 0 ? store.fetchAnnouncements() : Promise.resolve(),
-    ])
-    loadingNews.value = false
+// Загружаем 4 последние новости по категории «Молодёжный кружок» напрямую из API
+const youthNews = ref<any[]>([])
+async function fetchYouthNews() {
+  loadingYouthNews.value = true
+  try {
+    const config = useRuntimeConfig()
+    const wpBase = config.public.wpApi
+    const data = await $fetch(`${wpBase}/wp-json/wp/v2/new`, {
+      params: {
+        _embed: true,
+        per_page: 4,
+        categories: YOUTH_CATEGORY_ID,
+        orderby: 'date',
+        order: 'desc'
+      }
+    })
+    if (Array.isArray(data)) {
+      youthNews.value = data
+    }
+  } catch (err) {
+    console.error('fetchYouthNews error:', err)
+    youthNews.value = []
+  } finally {
+    loadingYouthNews.value = false
   }
+}
+
+// Загружаем 4 последних анонса по категории «Молодёжный кружок» напрямую из API
+const youthAnnouncements = ref<any[]>([])
+async function fetchYouthAnnouncements() {
+  loadingYouthAnnouncements.value = true
+  try {
+    const config = useRuntimeConfig()
+    const wpBase = config.public.wpApi
+    const data = await $fetch(`${wpBase}/wp-json/wp/v2/announcement`, {
+      params: {
+        _embed: true,
+        per_page: 4,
+        categories: YOUTH_CATEGORY_ID,
+        orderby: 'date',
+        order: 'desc'
+      }
+    })
+    if (Array.isArray(data)) {
+      youthAnnouncements.value = data
+    }
+  } catch (err) {
+    console.error('fetchYouthAnnouncements error:', err)
+    youthAnnouncements.value = []
+  } finally {
+    loadingYouthAnnouncements.value = false
+  }
+}
+
+onMounted(async () => {
+  await Promise.all([
+    fetchYouthClub(),
+    fetchYouthNews(),
+    fetchYouthAnnouncements()
+  ])
 })
 
-// Фильтруем новости по категории «Молодёжный кружок» и берём последние 4
+// Преобразуем сырые данные новостей
 const latestYouthNews = computed(() => {
-  return store.news
-    .filter(item => {
-      return item.categories.some(cat =>
-        cat.name.toLowerCase().includes('молодёжный кружок') ||
-        cat.name.toLowerCase().includes('молодежный кружок') ||
-        cat.slug.includes('molodezhnyy-kruzhok')
-      )
-    })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 4)
-    .map(item => ({
-      ...item,
-      title: decode(item.title || '')
-    }))
+  return youthNews.value.map((item: any) => ({
+    id: item.id,
+    title: decode(item.title?.rendered || 'Без названия'),
+    content: item.content?.rendered || '',
+    excerpt: item.excerpt?.rendered || '',
+    date: item.date || '',
+    image: item._embedded?.['wp:featuredmedia']?.[0]?.source_url || null,
+    categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
+      id: term.id,
+      name: term.name,
+      slug: term.slug,
+    })) || [],
+  }))
 })
 
-// Фильтруем анонсы по категории «Молодёжный кружок» и берём последние 4
+// Преобразуем сырые данные анонсов
 const latestYouthAnnouncements = computed(() => {
-  return store.announcements
-    .filter(item => {
-      return item.categories.some(cat =>
-        cat.name.toLowerCase().includes('молодёжный кружок') ||
-        cat.name.toLowerCase().includes('молодежный кружок') ||
-        cat.slug.includes('molodezhnyy-kruzhok')
-      )
-    })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 4)
-    .map(item => ({
-      ...item,
-      title: decode(item.title || '')
-    }))
+  return youthAnnouncements.value.map((item: any) => ({
+    id: item.id,
+    title: decode(item.title?.rendered || 'Без названия'),
+    content: item.content?.rendered || '',
+    date: item.date || '',
+    image: item._embedded?.['wp:featuredmedia']?.[0]?.source_url || null,
+    categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
+      id: term.id,
+      name: term.name,
+      slug: term.slug,
+    })) || [],
+  }))
 })
 
 const formatDate = (dateStr: string): string => {
@@ -254,29 +303,4 @@ const stripHtml = (html: string): string => {
   if (!html) return ''
   return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
 }
-
-// (опционально) можно оставить для будущих доработок
-const activities = [
-  { icon: Heart, title: 'Духовные беседы', description: 'Изучение Священного Писания и основ православной веры' },
-  { icon: Users, title: 'Общение', description: 'Дружеское общение и обсуждение актуальных вопросов' },
-  { icon: MapPin, title: 'Паломничества', description: 'Совместные поездки по святым местам' },
-  { icon: Heart, title: 'Благотворительность', description: 'Помощь нуждающимся и социальные проекты' },
-]
-
-const upcomingEvents = [
-  {
-    id: 1,
-    title: 'Встреча молодёжного кружка',
-    date: '16 марта 2026',
-    time: '15:00',
-    description: 'Обсуждение темы: "Православие и современный мир"',
-  },
-  {
-    id: 2,
-    title: 'Паломническая поездка',
-    date: '23 марта 2026',
-    time: '08:00',
-    description: 'Поездка в Новоиерусалимский монастырь',
-  },
-]
 </script>

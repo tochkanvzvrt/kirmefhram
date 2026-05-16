@@ -74,7 +74,7 @@
               <span>Max</span>
             </a>
           </div>
-              <div class="space-y-2 text-muted-foreground text-sm mt-5">
+          <div class="space-y-2 text-muted-foreground text-sm mt-5">
             <div class="flex items-center gap-2">
               <Phone class="w-4 h-4" />
               <p>Телефон:</p>
@@ -89,7 +89,7 @@
         <div class="text-muted-foreground text-sm text-center">
           <p>© Кирилло-Мефодиевский храм. Все права защищены.</p>
           <p class="mt-2">
-            МРО «Православный приход Кирилло-Мефодиевского храма г.о. Балашиха
+            Местная религиозная организация «Православный приход Кирилло-Мефодиевского храма г.о. Балашиха
             Балашихинской епархии Русской Православной Церкви»
           </p>
         </div>

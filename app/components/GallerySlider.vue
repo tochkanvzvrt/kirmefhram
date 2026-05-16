@@ -1,13 +1,7 @@
 <template>
-  <!-- Основной контейнер — показывается только если есть хотя бы одно изображение -->
   <div v-if="images.length" class="gallery-slider">
-    
-    <!-- Кнопка «назад» — фиксирована слева, скрывается/блокируется на первом слайде -->
     <button class="slider-btn left" @click="scroll(-1)" :disabled="currentIndex === 0">‹</button>
-    
-    <!-- Дорожка со всеми изображениями — по ней происходит скролл -->
     <div class="slider-track" ref="trackRef">
-      <!-- Каждое переданное изображение рендерим как отдельный слайд -->
       <img
         v-for="(img, i) in images"
         :key="i"
@@ -15,10 +9,9 @@
         :alt="`Фото ${i + 1}`"
         class="slider-img"
         loading="lazy"
+        @click="$emit('imageClick', img)"
       />
     </div>
-    
-    <!-- Кнопка «вперёд» — фиксирована справа, скрывается/блокируется на последнем слайде -->
     <button class="slider-btn right" @click="scroll(1)" :disabled="currentIndex >= images.length - 1">›</button>
   </div>
 </template>
@@ -26,122 +19,118 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-// Принимаем массив URL-ов изображений от родителя
 const props = defineProps<{
   images: string[]
 }>()
 
-// Ссылка на DOM-элемент дорожки, чтобы управлять скроллом
-const trackRef = ref<HTMLElement | null>(null)
+defineEmits<{
+  imageClick: [src: string]
+}>()
 
-// Индекс текущего видимого слайда (нужен для блокировки кнопок)
+const trackRef = ref<HTMLElement | null>(null)
 const currentIndex = ref(0)
 
-// Прокручивает дорожку на один слайд влево (-1) или вправо (+1)
 const scroll = (dir: number) => {
   if (!trackRef.value) return
-  
-  // Ширина одного слайда равна ширине видимой области дорожки
-  const step = trackRef.value.clientWidth
-  
-  // Вычисляем новый индекс, не выходя за границы
-  const newIndex = Math.max(0, Math.min(currentIndex.value + dir, props.images.length - 1))
+  const slides = trackRef.value.children as HTMLCollectionOf<HTMLElement>
+  let newIndex = currentIndex.value + dir
+  if (newIndex < 0) newIndex = 0
+  if (newIndex >= slides.length) newIndex = slides.length - 1
   currentIndex.value = newIndex
   
-  // Плавно скроллим к нужной позиции
-  trackRef.value.scrollTo({ left: step * newIndex, behavior: 'smooth' })
+  // Скроллим к конкретному слайду по его offsetLeft
+  const targetSlide = slides[newIndex]
+  if (targetSlide) {
+    trackRef.value.scrollTo({ left: targetSlide.offsetLeft, behavior: 'smooth' })
+  }
 }
 </script>
 
 <style scoped>
-/* Основной контейнер слайдера */
 .gallery-slider {
-  position: relative;          /* чтобы кнопки позиционировались внутри */
+  position: relative;
   display: flex;
-  align-items: center;
+  align-items: stretch; /* чтобы дорожка тянулась на всю высоту */
   margin: 2rem 0;
-  background: #f8fafc;        /* светло-серый фон */
   border-radius: 1rem;
-  padding: 1rem;
+  padding: 0.5rem;
 }
 
-/* Горизонтальная дорожка, по которой ездят слайды */
 .slider-track {
   display: flex;
-  gap: 10px;                   /* расстояние между слайдами */
-  overflow-x: auto;            /* разрешаем горизонтальный скролл */
-  scroll-snap-type: x mandatory; /* прилипание к слайдам */
-  scroll-behavior: smooth;     /* плавный скролл */
+  gap: 0;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
   flex: 1;
-  -ms-overflow-style: none;    /* скрываем скроллбар в IE */
-  scrollbar-width: none;       /* скрываем скроллбар в Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  align-items: center; /* выравнивание фото по центру дорожки */
 }
 
-/* Скрываем скроллбар в Chrome/Safari */
 .slider-track::-webkit-scrollbar {
   display: none;
 }
 
-/* Каждое изображение внутри слайдера */
 .slider-img {
-  scroll-snap-align: start;    /* прилипает к началу при скролле */
-  flex-shrink: 0;              /* не сжимается */
-  width: 100%;                 /* занимает всю видимую ширину */
-  max-height: 500px;           /* ограничение по высоте */
-  object-fit: contain;         /* вписывается целиком без обрезки */
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  flex-shrink: 0;
+  width: 100%;
+  max-height: 500px;
+  object-fit: contain;
   border-radius: 12px;
-  background: #fff;
+  cursor: pointer;
+  transition: transform 0.2s;
 }
 
-/* Кнопки «влево» и «вправо» */
+.slider-img:hover {
+  transform: scale(1.02);
+}
+
 .slider-btn {
-  background: rgba(255, 255, 255, 0.5);  /* более прозрачный фон */
-  border: 1px solid rgba(255, 255, 255, 0.3);  /* едва заметная граница */
+  background: rgba(0, 0, 0, 0.3);
+  border: none;
   font-size: 2rem;
-  padding: 0;                    /* убираем внутренние отступы */
-  width: 48px;                   /* фиксированная ширина */
-  height: 48px;                  /* фиксированная высота */
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  border-radius: 50%;            /* идеальный круг */
+  border-radius: 50%;
   position: absolute;
   z-index: 2;
   top: 50%;
   transform: translateY(-50%);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);  /* более лёгкая тень */
-  color: #333;
-  backdrop-filter: blur(4px);    /* размытие фона под кнопкой */
-  transition: background 0.2s, box-shadow 0.2s;
+  color: #fff;
+  backdrop-filter: blur(4px);
+  transition: background 0.2s;
+  line-height: 1;
+  padding: 0;
+  text-align: center;
 }
 
 .slider-btn:hover {
-  background: rgba(255, 255, 255, 0.7);  /* становится плотнее при наведении */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.5);
 }
 
-/* Состояние неактивной кнопки (крайнее положение) */
 .slider-btn:disabled {
   opacity: 0.3;
   cursor: default;
 }
 
-/* Фиксируем кнопку слева */
-.slider-btn.left {
-  left: 10px;
-}
+.slider-btn.left { left: 10px; }
+.slider-btn.right { right: 10px; }
 
-/* Фиксируем кнопку справа */
-.slider-btn.right {
-  right: 10px;
-}
-
-/* На мобильных устройствах уменьшаем кнопки */
 @media (max-width: 768px) {
+  .slider-img {
+    max-height: 300px;
+  }
   .slider-btn {
     font-size: 1.5rem;
-    padding: 0.1em 0.3em;
+    width: 40px;
+    height: 40px;
   }
 }
 </style>

@@ -35,7 +35,7 @@
     <section class="mx-auto px-4 lg:px-8 py-16 max-w-4xl container">
       <template v-for="(part, index) in contentParts" :key="index">
         <div v-if="part.type === 'html'" v-html="part.content" class="wp-content"></div>
-        <GallerySlider v-else-if="part.type === 'gallery'" :images="part.images" />
+        <GallerySlider v-else-if="part.type === 'gallery'" :images="part.images" @image-click="openLightbox" />
       </template>
 
       <div class="mt-12 pt-8 border-border border-t">
@@ -46,15 +46,26 @@
         </NuxtLink>
       </div>
     </section>
+
+    <!-- Лайтбокс -->
+    <Teleport to="body">
+      <div v-if="lightboxImage" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+        @click="closeLightbox">
+        <button class="absolute top-4 right-4 text-white text-3xl hover:opacity-70 transition" @click="closeLightbox">
+          ✕
+        </button>
+        <img :src="lightboxImage" class="max-w-full max-h-full object-contain rounded-lg" @click.stop />
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import { ArrowLeft } from 'lucide-vue-next'
 import { useRuntimeConfig } from '#app'
 import { decode } from 'html-entities'
 import GallerySlider from '~/components/GallerySlider.vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 const route = useRoute()
 const config = useRuntimeConfig()
@@ -186,7 +197,6 @@ const contentParts = computed(() => {
     }
     if (endIndex === -1) continue
 
-    // Текст до текущей галереи
     if (startIndex > lastIndex) {
       const textBefore = html.substring(lastIndex, startIndex)
       if (textBefore.trim()) {
@@ -194,7 +204,6 @@ const contentParts = computed(() => {
       }
     }
 
-    // Сама галерея
     if (galleries.value[galleryIdx]) {
       parts.push({ type: 'gallery', images: galleries.value[galleryIdx].images })
     }
@@ -203,7 +212,6 @@ const contentParts = computed(() => {
     galleryIdx++
   }
 
-  // Оставшийся текст после последней галереи
   if (lastIndex < html.length) {
     const textAfter = html.substring(lastIndex)
     if (textAfter.trim()) {
@@ -212,6 +220,40 @@ const contentParts = computed(() => {
   }
 
   return parts
+})
+
+// Лайтбокс
+const lightboxImage = ref<string | null>(null)
+
+function openLightbox(src: string) {
+  lightboxImage.value = src
+  document.body.style.overflow = 'hidden'
+}
+
+function closeLightbox() {
+  lightboxImage.value = null
+  document.body.style.overflow = ''
+}
+
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && lightboxImage.value) {
+    closeLightbox()
+  }
+}
+
+onMounted(() => {
+  document.querySelector('.wp-content')?.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement
+    if (target.tagName === 'IMG') {
+      const src = target.getAttribute('src')
+      if (src) openLightbox(src)
+    }
+  })
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
 })
 
 useHead({

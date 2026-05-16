@@ -33,8 +33,14 @@ interface ScheduleDay {
 
 export const useContentStore = defineStore('content', {
   state: () => ({
+    // Для пагинации (страницы /news, /announcements)
     announcements: [] as Announcement[],
     news: [] as NewsItem[],
+
+    // Для ленты (главная страница)
+    feedNews: [] as NewsItem[],
+    feedAnnouncements: [] as Announcement[],
+
     schedule: [] as ScheduleDay[],
 
     // Пагинация
@@ -46,13 +52,12 @@ export const useContentStore = defineStore('content', {
     currentAnnouncementPage: 1,
     announcementsPerPage: 20,
 
-    // Все категории из WordPress (не только из загруженных новостей)
+    // Все категории из WordPress
     allNewsCategoriesList: [] as { id: number; name: string; slug: string }[],
     allAnnouncementCategoriesList: [] as { id: number; name: string; slug: string }[],
   }),
 
   actions: {
-    // Загрузка всех категорий для новостей
     async fetchAllNewsCategories() {
       if (this.allNewsCategoriesList.length > 0) return
       const config = useRuntimeConfig()
@@ -74,7 +79,6 @@ export const useContentStore = defineStore('content', {
       }
     },
 
-    // Загрузка всех категорий для анонсов
     async fetchAllAnnouncementCategories() {
       if (this.allAnnouncementCategoriesList.length > 0) return
       const config = useRuntimeConfig()
@@ -96,7 +100,7 @@ export const useContentStore = defineStore('content', {
       }
     },
 
-    // Старый метод (для главной страницы – 20 записей)
+    // Для ленты (главная страница) – сохраняет в feedNews
     async fetchNews() {
       const config = useRuntimeConfig()
       const wpBase = config.public.wpApi
@@ -105,7 +109,7 @@ export const useContentStore = defineStore('content', {
           params: { _embed: true, per_page: 20 }
         })
         if (Array.isArray(data)) {
-          this.news = data.map((item: any) => ({
+          this.feedNews = data.map((item: any) => ({
             id: item.id,
             title: item.title?.rendered || 'Без названия',
             content: item.content?.rendered || '',
@@ -122,24 +126,26 @@ export const useContentStore = defineStore('content', {
         }
       } catch (err) {
         console.error('Ошибка загрузки новостей:', err)
-        this.news = []
+        this.feedNews = []
       }
     },
 
-    // Новый метод постраничной загрузки новостей
-    async fetchNewsPage(page: number, perPage: number = 20) {
+    // Для страницы /news – сохраняет в news
+    async fetchNewsPage(page: number, perPage: number = 20, categoryId?: number) {
       const config = useRuntimeConfig()
       const wpBase = config.public.wpApi
+      const params: any = {
+        _embed: true,
+        per_page: perPage,
+        page: page,
+        orderby: 'date',
+        order: 'desc'
+      }
+      if (categoryId) {
+        params.categories = categoryId
+      }
       try {
-        const response = await $fetch.raw(`${wpBase}/wp-json/wp/v2/new`, {
-          params: {
-            _embed: true,
-            per_page: perPage,
-            page: page,
-            orderby: 'date',
-            order: 'desc'
-          }
-        })
+        const response = await $fetch.raw(`${wpBase}/wp-json/wp/v2/new`, { params })
         const data = response._data
         if (Array.isArray(data)) {
           this.news = data.map((item: any) => ({
@@ -168,55 +174,7 @@ export const useContentStore = defineStore('content', {
       }
     },
 
-    // Старый метод загрузки всех новостей (оставлен для совместимости)
-    async fetchAllNews() {
-      const config = useRuntimeConfig()
-      const wpBase = config.public.wpApi
-      let allNews: any[] = []
-      let page = 1
-      let totalPages = 1
-
-      try {
-        do {
-          const response = await $fetch.raw(`${wpBase}/wp-json/wp/v2/new`, {
-            params: {
-              _embed: true,
-              per_page: 100,
-              page: page,
-              orderby: 'date',
-              order: 'desc'
-            }
-          })
-          const data = response._data
-          if (Array.isArray(data)) {
-            allNews.push(...data)
-          }
-          const total = response.headers?.get('x-wp-totalpages')
-          if (total) totalPages = parseInt(total)
-          page++
-        } while (page <= totalPages)
-
-        this.news = allNews.map((item: any) => ({
-          id: item.id,
-          title: item.title?.rendered || 'Без названия',
-          content: item.content?.rendered || '',
-          excerpt: item.excerpt?.rendered || '',
-          date: item.date || '',
-          link: item.link || '',
-          categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
-            id: term.id,
-            name: term.name,
-            slug: term.slug,
-          })) || [],
-          image: item._embedded?.['wp:featuredmedia']?.[0]?.source_url || null,
-        }))
-      } catch (err) {
-        console.error('Ошибка загрузки всех новостей:', err)
-        this.news = []
-      }
-    },
-
-    // Старый метод загрузки анонсов (20 записей)
+    // Для ленты (главная страница) – сохраняет в feedAnnouncements
     async fetchAnnouncements() {
       const config = useRuntimeConfig()
       const wpBase = config.public.wpApi
@@ -225,7 +183,7 @@ export const useContentStore = defineStore('content', {
           params: { per_page: 20, _embed: true }
         })
         if (Array.isArray(data)) {
-          this.announcements = data.map((item: any) => {
+          this.feedAnnouncements = data.map((item: any) => {
             let categories: { id: number; name: string; slug: string }[] = []
             const terms = item._embedded?.['wp:term']
             if (terms && Array.isArray(terms) && terms[0] && Array.isArray(terms[0])) {
@@ -254,24 +212,26 @@ export const useContentStore = defineStore('content', {
         }
       } catch (err) {
         console.error('Ошибка загрузки анонсов:', err)
-        this.announcements = []
+        this.feedAnnouncements = []
       }
     },
 
-    // Новый метод постраничной загрузки анонсов
-    async fetchAnnouncementsPage(page: number, perPage: number = 20) {
+    // Для страницы /announcements – сохраняет в announcements
+    async fetchAnnouncementsPage(page: number, perPage: number = 20, categoryId?: number) {
       const config = useRuntimeConfig()
       const wpBase = config.public.wpApi
+      const params: any = {
+        _embed: true,
+        per_page: perPage,
+        page: page,
+        orderby: 'date',
+        order: 'desc'
+      }
+      if (categoryId) {
+        params.categories = categoryId
+      }
       try {
-        const response = await $fetch.raw(`${wpBase}/wp-json/wp/v2/announcement`, {
-          params: {
-            _embed: true,
-            per_page: perPage,
-            page: page,
-            orderby: 'date',
-            order: 'desc'
-          }
-        })
+        const response = await $fetch.raw(`${wpBase}/wp-json/wp/v2/announcement`, { params })
         const data = response._data
         if (Array.isArray(data)) {
           this.announcements = data.map((item: any) => {
@@ -447,12 +407,16 @@ export const useContentStore = defineStore('content', {
   },
 
   getters: {
+    // Новости для пагинации
     sortedNews(): NewsItem[] {
       return [...this.news].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     },
+
+    // Новости для ленты (главная)
     latestNews(): NewsItem[] {
-      return this.sortedNews.slice(0, 3)
+      return [...this.feedNews].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4)
     },
+
     allNewsCategories(): { id: string | number; name: string }[] {
       const cats = new Map()
       this.news.forEach(article => {
@@ -463,12 +427,16 @@ export const useContentStore = defineStore('content', {
       return [{ id: 'all', name: 'Все новости' }, ...Array.from(cats.values())]
     },
 
+    // Анонсы для пагинации
     sortedAnnouncements(): Announcement[] {
       return [...this.announcements].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     },
+
+    // Анонсы для ленты (главная)
     latestAnnouncements(): Announcement[] {
-      return this.sortedAnnouncements.slice(0, 3)
+      return [...this.feedAnnouncements].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4)
     },
+
     allAnnouncementCategories(): { id: string | number; name: string }[] {
       const cats = new Map()
       this.announcements.forEach(article => {

@@ -1,2 +1,12 @@
 Пароль от сервиса Записок: dadada5823@gmail.com
  0IJaGXmlKL
+
+Устранить бесконечный цикл в VonmiDonation.vue – удалить iframeKey и onMounted.
+
+Исправить категории в announcements/index.vue – использовать allAnnouncementCategoriesList.
+
+Очищать таймеры в Header.vue – добавить onUnmounted.
+
+Исправить скролл в GallerySlider.vue – вычислять позицию по offset.
+
+Разделить состояние store для ленты и пагинации – чтобы избежать перезатирания данных.

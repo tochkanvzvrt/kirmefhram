@@ -5,7 +5,9 @@
         <div class="inline-flex justify-center items-center bg-white/10 mb-6 rounded-full w-20 h-20">
           <Calendar class="w-10 h-10" />
         </div>
-        <h1 class="mb-4 font-serif text-5xl md:text-6xl">Расписание богослужений</h1>
+        <h1 class="mb-4 font-serif text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl break-words">
+          Расписание богослужений
+        </h1>
       </div>
     </section>
 
@@ -26,18 +28,27 @@
 
       <div v-else-if="scheduleDataForMonth.length"
         class="gap-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mx-auto max-w-7xl">
-        <Card v-for="(item, index) in scheduleDataForMonth" :key="index" class="p-6 hover:shadow-lg transition-all">
-          <div class="flex justify-between items-start mb-4">
-            <div>
-              <div class="font-serif text-primary text-4xl">{{ item.date }}</div>
-              <div class="mt-1 text-muted-foreground text-sm">{{ item.day }}</div>
-            </div>
+        <Card v-for="(item, index) in scheduleDataForMonth" :key="index"
+          class="p-6 hover:shadow-lg transition-all">
+          <!-- Дата и день недели -->
+          <div class="text-center mb-4">
+            <div class="font-serif text-primary text-4xl">{{ item.date }}</div>
+            <div class="mt-1 text-muted-foreground text-sm">{{ item.day }}</div>
           </div>
 
+          <!-- Разделитель 1 -->
+          <hr />
+
+          <!-- Литургический день -->
           <div v-if="item.liturgical" class="liturgical-day schedule-text" v-html="item.liturgical"></div>
 
+          <!-- Разделитель 2 (только если есть и литургический день, и время) -->
+          <hr v-if="item.liturgical && item.services" />
+
+          <!-- Время служб -->
           <div v-if="item.services" class="services-time schedule-text" v-html="item.services"></div>
 
+          <!-- Если вообще ничего нет -->
           <div v-if="!item.liturgical && !item.services" class="text-muted-foreground">
             <em>Нет описания</em>
           </div>
@@ -139,8 +150,6 @@ const nextMonth = () => {
   font-weight: 700 !important;
 }
 
-.schedule-text :deep([style*="font-weight"]) {}
-
 .schedule-text :deep(em),
 .schedule-text :deep(i) {
   font-style: italic !important;
@@ -149,7 +158,7 @@ const nextMonth = () => {
 .liturgical-day {
   font-size: 1.125rem;
   font-weight: 500;
-  margin-bottom: 1rem;
+  margin-bottom: 0;
 }
 
 .liturgical-day :deep(p) {
@@ -168,5 +177,12 @@ const nextMonth = () => {
 
 .services-time :deep(p) {
   margin: 0.5rem 0;
+}
+
+hr {
+  border: none;
+  height: 0.5px;
+  background-color: rgb(138, 45, 30);
+  margin: 0.75rem 0;
 }
 </style>

@@ -46,8 +46,8 @@
       <div class="mx-auto px-4 lg:px-8 container">
         <h2 class="mb-8 font-serif text-primary text-4xl text-center">Новости взрослой воскресной школы</h2>
 
-        <div v-if="loadingNews" class="py-16 text-center">
-          <p class="text-muted-foreground">Загрузка...</p>
+        <div v-if="loadingAdultNews" class="py-16 text-center">
+          <p class="text-muted-foreground">Загрузка новостей...</p>
         </div>
 
         <div v-else-if="latestAdultSundaySchoolNews.length === 0" class="py-16 text-center">
@@ -96,8 +96,8 @@
       <div class="mx-auto px-4 lg:px-8 container">
         <h2 class="mb-8 font-serif text-primary text-4xl text-center">Анонсы взрослой воскресной школы</h2>
 
-        <div v-if="loadingNews" class="py-16 text-center">
-          <p class="text-muted-foreground">Загрузка...</p>
+        <div v-if="loadingAdultAnnouncements" class="py-16 text-center">
+          <p class="text-muted-foreground">Загрузка анонсов...</p>
         </div>
 
         <div v-else-if="latestAdultSundaySchoolAnnouncements.length === 0" class="py-16 text-center">
@@ -148,16 +148,16 @@ import { ref, computed, onMounted } from 'vue'
 import { GraduationCap, Clock, Users, Calendar, ArrowRight, BookOpen } from 'lucide-vue-next'
 import Card from '~/components/ui/Card.vue'
 import Badge from '~/components/ui/Badge.vue'
-import { useContentStore } from '~/stores/content'
 import { decode } from 'html-entities'
 
-const store = useContentStore()
 const loading = ref(true)
-const loadingNews = ref(false)
+const loadingAdultNews = ref(false)
+const loadingAdultAnnouncements = ref(false)
 
 const sundaySchoolText = ref<string>('')
 const enrollmentText = ref<string>('')
 
+const ADULT_SUNDAY_SCHOOL_CATEGORY_ID = 9
 const formatText = (text: string): string => {
   if (!text) return ''
   return text
@@ -191,51 +191,99 @@ const fetchSundaySchool = async () => {
   }
 }
 
-onMounted(async () => {
-  await fetchSundaySchool()
-
-  if (store.news.length === 0 || store.announcements.length === 0) {
-    loadingNews.value = true
-    await Promise.all([
-      store.news.length === 0 ? store.fetchNews() : Promise.resolve(),
-      store.announcements.length === 0 ? store.fetchAnnouncements() : Promise.resolve(),
-    ])
-    loadingNews.value = false
+// Загружаем 4 последние новости по взрослой воскресной школе напрямую из API
+const adultNews = ref<any[]>([])
+async function fetchAdultNews() {
+  loadingAdultNews.value = true
+  try {
+    const config = useRuntimeConfig()
+    const wpBase = config.public.wpApi
+    const data = await $fetch(`${wpBase}/wp-json/wp/v2/new`, {
+      params: {
+        _embed: true,
+        per_page: 4,
+        categories: ADULT_SUNDAY_SCHOOL_CATEGORY_ID,
+        orderby: 'date',
+        order: 'desc'
+      }
+    })
+    if (Array.isArray(data)) {
+      adultNews.value = data
+    }
+  } catch (err) {
+    console.error('fetchAdultNews error:', err)
+    adultNews.value = []
+  } finally {
+    loadingAdultNews.value = false
   }
+}
+
+// Загружаем 4 последних анонса по взрослой воскресной школе напрямую из API
+const adultAnnouncements = ref<any[]>([])
+async function fetchAdultAnnouncements() {
+  loadingAdultAnnouncements.value = true
+  try {
+    const config = useRuntimeConfig()
+    const wpBase = config.public.wpApi
+    const data = await $fetch(`${wpBase}/wp-json/wp/v2/announcement`, {
+      params: {
+        _embed: true,
+        per_page: 4,
+        categories: ADULT_SUNDAY_SCHOOL_CATEGORY_ID,
+        orderby: 'date',
+        order: 'desc'
+      }
+    })
+    if (Array.isArray(data)) {
+      adultAnnouncements.value = data
+    }
+  } catch (err) {
+    console.error('fetchAdultAnnouncements error:', err)
+    adultAnnouncements.value = []
+  } finally {
+    loadingAdultAnnouncements.value = false
+  }
+}
+
+onMounted(async () => {
+  await Promise.all([
+    fetchSundaySchool(),
+    fetchAdultNews(),
+    fetchAdultAnnouncements()
+  ])
 })
 
-// Последние 4 новости по взрослой воскресной школе
+// Преобразуем сырые данные новостей
 const latestAdultSundaySchoolNews = computed(() => {
-  return store.news
-    .filter(item =>
-      item.categories.some(cat =>
-        cat.name.toLowerCase().includes('взрослая воскресная школа') ||
-        cat.slug.includes('vokresnaya-shkola')
-      )
-    )
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 4)
-    .map(item => ({
-      ...item,
-      title: decode(item.title || '')
-    }))
+  return adultNews.value.map((item: any) => ({
+    id: item.id,
+    title: decode(item.title?.rendered || 'Без названия'),
+    content: item.content?.rendered || '',
+    excerpt: item.excerpt?.rendered || '',
+    date: item.date || '',
+    image: item._embedded?.['wp:featuredmedia']?.[0]?.source_url || null,
+    categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
+      id: term.id,
+      name: term.name,
+      slug: term.slug,
+    })) || [],
+  }))
 })
 
-// Последние 4 анонса по взрослой воскресной школе
+// Преобразуем сырые данные анонсов
 const latestAdultSundaySchoolAnnouncements = computed(() => {
-  return store.announcements
-    .filter(item =>
-      item.categories.some(cat =>
-        cat.name.toLowerCase().includes('взрослая воскресная школа') ||
-        cat.slug.includes('vokresnaya-shkola')
-      )
-    )
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 4)
-    .map(item => ({
-      ...item,
-      title: decode(item.title || '')
-    }))
+  return adultAnnouncements.value.map((item: any) => ({
+    id: item.id,
+    title: decode(item.title?.rendered || 'Без названия'),
+    content: item.content?.rendered || '',
+    date: item.date || '',
+    image: item._embedded?.['wp:featuredmedia']?.[0]?.source_url || null,
+    categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
+      id: term.id,
+      name: term.name,
+      slug: term.slug,
+    })) || [],
+  }))
 })
 
 const formatDate = (dateStr: string): string => {

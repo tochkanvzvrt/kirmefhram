@@ -1,15 +1,10 @@
 <template>
-    <div class="vonmi-donation-container">
-        <iframe :key="iframeKey" :srcdoc="iframeContent" style="width:100%; min-height:400px; border:none;"
-            title="Пожертвования"></iframe>
-    </div>
+  <div class="vonmi-donation-container">
+    <iframe :srcdoc="iframeContent" style="width:100%; min-height:400px; border:none;" title="Пожертвования"></iframe>
+  </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-
-const iframeKey = ref(0)
-
 const iframeContent = `
 <!DOCTYPE html>
 <html>
@@ -30,8 +25,4 @@ const iframeContent = `
 </body>
 </html>
 `
-
-onMounted(() => {
-    iframeKey.value++
-})
 </script>

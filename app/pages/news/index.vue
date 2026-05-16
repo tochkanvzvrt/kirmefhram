@@ -15,9 +15,9 @@
     <section class="top-20 z-40 bg-white py-6 border-border border-b">
       <div class="mx-auto px-4 lg:px-8 container">
         <div class="flex flex-wrap justify-center gap-3">
-          <button v-for="cat in categoriesList" :key="cat.id" @click="goToCategory(cat.id)" :class="[
+          <button v-for="cat in categoriesList" :key="cat.id" @click="selectCategory(cat.id)" :class="[
             'px-4 py-2 rounded-full text-sm transition-all',
-            selectedCategory === cat.id
+            activeCategoryId === cat.id
               ? 'bg-primary text-white'
               : 'bg-muted text-foreground hover:bg-primary/10',
           ]">
@@ -73,15 +73,10 @@
 
       <!-- ПАГИНАЦИЯ -->
       <div v-if="store.totalNewsPages > 1" class="flex justify-center gap-2 mt-10">
-        <button
-          v-for="page in store.totalNewsPages"
-          :key="page"
-          @click="goToPage(page)"
-          :class="[
-            'px-4 py-2 rounded-lg transition',
-            page === store.currentNewsPage ? 'bg-primary text-white' : 'bg-muted hover:bg-primary/10'
-          ]"
-        >
+        <button v-for="page in store.totalNewsPages" :key="page" @click="goToPage(page)" :class="[
+          'px-4 py-2 rounded-lg transition',
+          page === store.currentNewsPage ? 'bg-primary text-white' : 'bg-muted hover:bg-primary/10'
+        ]">
           {{ page }}
         </button>
       </div>
@@ -101,12 +96,23 @@ const store = useContentStore()
 const loading = ref(false)
 const error = ref(false)
 
+// Активная категория (null = все)
+const activeCategoryId = ref<number | null>(null)
+
 // Загружаем все категории (один раз)
 if (store.allNewsCategoriesList.length === 0) {
   await store.fetchAllNewsCategories()
 }
 
-// Всегда загружаем первую страницу
+// Категории: исключаем «Без рубрики»
+const categoriesList = computed(() => {
+  return [
+    { id: null, name: 'Все новости' },
+    ...store.allNewsCategoriesList.filter(cat => cat.id !== 1)
+  ]
+})
+
+// Первая загрузка
 try {
   loading.value = true
   await store.fetchNewsPage(1, 21)
@@ -117,35 +123,31 @@ try {
   loading.value = false
 }
 
-// Категории теперь из стора (все существующие)
-const categoriesList = computed(() => [
-  { id: 'all', name: 'Все новости' },
-  ...store.allNewsCategoriesList
-])
-
-const selectedCategory = ref('all')
-
 const filteredNews = computed(() => {
-  let news = store.news || []
-  if (selectedCategory.value !== 'all') {
-    news = news.filter(article =>
-      article.categories.some(cat => cat.id === selectedCategory.value)
-    )
-  }
-  return news.map(item => ({
+  // теперь данные уже отфильтрованы сервером, просто декодируем заголовки
+  return (store.news || []).map(item => ({
     ...item,
     title: decode(item.title || '')
   }))
 })
 
-async function goToCategory(catId: string) {
-  selectedCategory.value = catId
+async function selectCategory(catId: number | null) {
+  activeCategoryId.value = catId
+  loading.value = true
+  try {
+    await store.fetchNewsPage(1, 21, catId ?? undefined)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  } catch (err) {
+    error.value = true
+  } finally {
+    loading.value = false
+  }
 }
 
 async function goToPage(page: number) {
   loading.value = true
   try {
-    await store.fetchNewsPage(page, 21)
+    await store.fetchNewsPage(page, 21, activeCategoryId.value ?? undefined)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   } catch (err) {
     error.value = true

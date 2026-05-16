@@ -9,7 +9,7 @@
           </div>
           <div class="hidden lg:block">
             <div class="font-serif text-primary text-xl">Кирилло-Мефодиевский храм</div>
-            <div class="text-muted-foreground text-sm">г. Балашиха</div>
+            <div class="text-muted-foreground text-sm">город Балашиха</div>
           </div>
         </NuxtLink>
 
@@ -140,7 +140,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onUnmounted } from 'vue'
 import { Church, ChevronDown, Menu, X, Heart, Bell } from 'lucide-vue-next'
 import Button from '~/components/ui/Button.vue'
 
@@ -160,7 +160,7 @@ const mobileDropdownOpen = reactive<Record<string, boolean>>({
   'Социальное служение': false,
 })
 
-let timeoutId: NodeJS.Timeout | null = null
+let timeoutId: ReturnType<typeof setTimeout> | null = null
 
 const openDropdown = (label: string) => {
   if (timeoutId) clearTimeout(timeoutId)
@@ -219,6 +219,11 @@ const isActive = (path: string) => {
   if (path === '/') return route.path === '/'
   return route.path.startsWith(path)
 }
+
+// Очистка таймеров при размонтировании
+onUnmounted(() => {
+  if (timeoutId) clearTimeout(timeoutId)
+})
 </script>
 
 <style scoped>
