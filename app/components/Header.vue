@@ -184,7 +184,7 @@ const menuItems = [
   { label: 'Главная', path: '/' },
   { label: 'Анонсы', path: '/announcements' },
   { label: 'Новости', path: '/news' },
-  { label: 'Расписание', path: '/schedule' },
+  { label: 'Расписание', path: '/rb' },
   {
     label: 'О храме',
     path: '/about',

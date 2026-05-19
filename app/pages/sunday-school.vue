@@ -83,7 +83,7 @@
         </div>
 
         <div class="text-center">
-          <NuxtLink to="/news" class="inline-flex items-center gap-2 text-primary hover:underline">
+          <NuxtLink :to="`/news?category=${SUNDAY_SCHOOL_CATEGORY_ID}`" class="inline-flex items-center gap-2 text-primary hover:underline">
             Все новости
             <ArrowRight class="w-4 h-4" />
           </NuxtLink>
@@ -133,7 +133,7 @@
         </div>
 
         <div class="text-center">
-          <NuxtLink to="/announcements" class="inline-flex items-center gap-2 text-primary hover:underline">
+          <NuxtLink :to="`/announcements?category=${SUNDAY_SCHOOL_CATEGORY_ID}`" class="inline-flex items-center gap-2 text-primary hover:underline">
             Все анонсы
             <ArrowRight class="w-4 h-4" />
           </NuxtLink>

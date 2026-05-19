@@ -90,11 +90,16 @@ import Badge from '~/components/ui/Badge.vue'
 import { useContentStore } from '~/stores/content'
 import { decode } from 'html-entities'
 
+const route = useRoute()
 const store = useContentStore()
 const loading = ref(false)
 const error = ref(false)
 
-const activeCategoryId = ref<number | null>(null)
+// Определяем категорию из URL (?category=4)
+const categoryFromUrl = route.query.category
+const initialCategory = categoryFromUrl && !isNaN(Number(categoryFromUrl)) ? Number(categoryFromUrl) : null
+
+const activeCategoryId = ref<number | null>(initialCategory)
 
 // Загружаем все категории (один раз)
 if (store.allNewsCategoriesList.length === 0) {
@@ -106,10 +111,10 @@ const categoriesList = computed(() => [
   ...store.allNewsCategoriesList.filter(cat => cat.id !== 1)
 ])
 
-// Первая загрузка
+// Первая загрузка с учётом категории из URL
 try {
   loading.value = true
-  await store.fetchNewsPage(1, 21)
+  await store.fetchNewsPage(1, 21, activeCategoryId.value ?? undefined)
 } catch (err) {
   console.error(err)
   error.value = true

@@ -1,7 +1,7 @@
 <template>
   <div class="w-full">
     <!-- Hero с превью-фото или градиентом -->
-    <section class="relative flex justify-center items-center py-20 text-white overflow-hidden"
+    <section class="relative flex justify-center items-center py-28 text-white overflow-hidden"
       :class="article.image ? '' : 'bg-gradient-to-br from-primary to-primary/80'">
       <!-- Затемнённое превью-фото -->
       <img v-if="article.image" :src="article.image" :alt="article.title"

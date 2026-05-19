@@ -18,7 +18,7 @@
         </p>
 
         <div class="hidden md:flex sm:flex-row flex-col justify-center gap-4 mb-6">
-          <NuxtLink to="/schedule">
+          <NuxtLink to="/rb">
             <Button size="lg" class="bg-white hover:bg-white/90 px-8 text-primary text-lg">
               Расписание богослужений
             </Button>
@@ -33,7 +33,7 @@
 
         <!-- Мобильные кнопки на баннере -->
         <div class="flex md:hidden sm:flex-row flex-col justify-center gap-3 mt-5 w-full max-w-xs">
-          <NuxtLink to="/schedule" class="w-full">
+          <NuxtLink to="/rb" class="w-full">
             <Button class="bg-white hover:bg-white/90 px-6 py-3 text-primary text-base w-full">Расписание
               богослужений</Button>
           </NuxtLink>
@@ -109,7 +109,7 @@
       </div>
       <div v-else class="text-center text-muted-foreground">Нет ближайших богослужений</div>
       <div class="text-center mt-8">
-        <NuxtLink to="/schedule"><Button variant="outline" class="gap-2">Все расписание на месяц
+        <NuxtLink to="/rb"><Button variant="outline" class="gap-2">Все расписание на месяц
             <ArrowRight class="w-4 h-4" />
           </Button></NuxtLink>
       </div>
@@ -420,6 +420,9 @@ const fetchBanners = async () => {
     for (const item of banners) {
       if (item.banner?.guid) images.push(item.banner.guid)
       if (item.banner2?.guid) images.push(item.banner2.guid)
+      if (item.banner3?.guid) images.push(item.banner3.guid)
+      if (item.banner4?.guid) images.push(item.banner4.guid)
+      if (item.banner5?.guid) images.push(item.banner5.guid)
     }
     if (images.length > 0) {
       bannerImages.value = images
@@ -523,7 +526,7 @@ const stripHtml = (html: string): string => {
 hr {
   border: none;
   height: 0.5px;
-  background-color: rgb(138, 45, 30);
+  background-color: hsl(var(--border));
   margin: 0.75rem 0;
 }
 </style>

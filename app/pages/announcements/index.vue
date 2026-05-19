@@ -53,17 +53,12 @@
               </div>
             </div>
             <div class="flex flex-col flex-1 p-6">
-              <!-- <div class="flex items-center gap-2 text-muted-foreground text-sm mb-3">
-                <Calendar class="w-4 h-4 flex-shrink-0" />
-                <span>{{ formatDate(article.date) }}</span>
-              </div> -->
               <h3 class="mb-3 font-serif group-hover:text-primary text-xl transition-colors line-clamp-5">
                 {{ article.title }}
               </h3>
               <p class="mb-4 text-muted-foreground line-clamp-3 flex-1">
                 {{ getLead(article) }}
               </p>
-              <!-- Рубрики -->
               <div v-if="article.categories.length" class="flex flex-wrap gap-1 mb-3">
                 <Badge v-for="cat in article.categories" :key="cat.id" variant="secondary" class="text-xs">
                   {{ cat.name }}
@@ -78,7 +73,6 @@
         </NuxtLink>
       </div>
 
-      <!-- ПАГИНАЦИЯ -->
       <div v-if="store.totalAnnouncementPages > 1" class="flex justify-center gap-2 mt-10">
         <button v-for="page in store.totalAnnouncementPages" :key="page" @click="goToPage(page)" :class="[
           'px-4 py-2 rounded-lg transition',
@@ -99,28 +93,31 @@ import Badge from '~/components/ui/Badge.vue'
 import { useContentStore } from '~/stores/content'
 import { decode } from 'html-entities'
 
+const route = useRoute()
 const store = useContentStore()
 const loading = ref(false)
 const error = ref(false)
 
-// Активная категория (null = все)
-const activeCategoryId = ref<number | null>(null)
+// Определяем категорию из URL (?category=4)
+const categoryFromUrl = route.query.category
+const initialCategory = categoryFromUrl && !isNaN(Number(categoryFromUrl)) ? Number(categoryFromUrl) : null
+
+const activeCategoryId = ref<number | null>(initialCategory)
 
 // Загружаем все категории (один раз)
 if (store.allAnnouncementCategoriesList.length === 0) {
   await store.fetchAllAnnouncementCategories()
 }
 
-// Категории: исключаем «Без рубрики»
 const categoriesList = computed(() => [
   { id: null, name: 'Все анонсы' },
   ...store.allAnnouncementCategoriesList.filter(cat => cat.id !== 1)
 ])
 
-// Первая загрузка
+// Первая загрузка с учётом категории из URL
 try {
   loading.value = true
-  await store.fetchAnnouncementsPage(1, 21)
+  await store.fetchAnnouncementsPage(1, 21, activeCategoryId.value ?? undefined)
 } catch (err) {
   console.error(err)
   error.value = true
@@ -163,11 +160,7 @@ async function goToPage(page: number) {
 const formatDate = (dateStr: string) => {
   if (!dateStr) return ''
   const date = new Date(dateStr)
-  return date.toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 const stripHtml = (html: string): string => {
@@ -184,8 +177,6 @@ const getLead = (article: any) => {
 
 useHead({
   title: 'Анонсы | Кирилло-Мефодиевский храм',
-  meta: [
-    { name: 'description', content: 'Анонсы и объявления Кирилло-Мефодиевского храма города Балашихи: предстоящие события, важные уведомления.' }
-  ]
+  meta: [{ name: 'description', content: 'Анонсы и объявления Кирилло-Мефодиевского храма города Балашихи: предстоящие события, важные уведомления.' }]
 })
 </script>

@@ -29,7 +29,7 @@
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/schedule" class="text-muted-foreground hover:text-primary transition-colors">Расписание
+              <NuxtLink to="/rb" class="text-muted-foreground hover:text-primary transition-colors">Расписание
               </NuxtLink>
             </li>
             <li>

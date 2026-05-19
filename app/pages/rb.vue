@@ -28,12 +28,13 @@
 
       <div v-else-if="scheduleDataForMonth.length"
         class="gap-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mx-auto max-w-7xl">
-        <Card v-for="(item, index) in scheduleDataForMonth" :key="index"
-          class="p-6 hover:shadow-lg transition-all">
+        <Card v-for="(item, index) in scheduleDataForMonth" :key="index" class="p-6 hover:shadow-lg transition-all">
           <!-- Дата и день недели -->
-          <div class="text-center mb-4">
-            <div class="font-serif text-primary text-4xl">{{ item.date }}</div>
-            <div class="mt-1 text-muted-foreground text-sm">{{ item.day }}</div>
+          <div class="flex justify-between items-start mb-4">
+            <div>
+              <div class="font-serif text-primary text-4xl">{{ item.date }}</div>
+              <div class="mt-1 text-muted-foreground text-sm">{{ item.day }}</div>
+            </div>
           </div>
 
           <!-- Разделитель 1 -->
@@ -182,7 +183,7 @@ const nextMonth = () => {
 hr {
   border: none;
   height: 0.5px;
-  background-color: rgb(138, 45, 30);
+  background-color: hsl(var(--border));
   margin: 0.75rem 0;
 }
 </style>
