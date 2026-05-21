@@ -416,6 +416,9 @@ useHead({
   color: rgb(138, 45, 30);
   text-decoration: underline;
   transition: color 0.2s;
+    overflow-wrap: break-word;
+  word-wrap: break-word;
+  max-width: 100%;
 }
 
 .wp-content :deep(a:hover) {
@@ -550,9 +553,9 @@ useHead({
   list-style-position: inside;
 }
 
-/* Адаптив */
+/* ======= АДАПТИВ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ ======= */
 @media (max-width: 768px) {
-
+  /* Отмена обтекания для выравненных элементов */
   .wp-content :deep(.alignleft),
   .wp-content :deep(.alignright),
   .wp-content :deep(figure.alignleft),
@@ -560,6 +563,17 @@ useHead({
     float: none;
     display: block;
     margin: 1em auto;
+  }
+  
+  /* Адаптив для iframe (видео) — только на мобилках */
+  .wp-content :deep(iframe) {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 16 / 9;
+    border-radius: 0.5rem;
+    display: block;
+    box-sizing: border-box;
   }
 }
 </style>
