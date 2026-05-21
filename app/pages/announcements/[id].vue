@@ -12,7 +12,6 @@
           {{ article.title }}
         </h1>
         <div class="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-white/80 text-sm md:text-base">
-          <!-- <span>{{ formatDate(article.date) }}</span> -->
           <span v-if="article.categories.length" class="flex flex-wrap justify-center gap-1">
             <span v-for="(cat, i) in article.categories" :key="cat.id">
               <span v-if="i > 0 || article.date" class="mr-1">•</span>{{ cat.name }}
@@ -22,12 +21,9 @@
       </div>
     </section>
 
-    <!-- Контент с автоматической вставкой слайдеров на места галерей -->
+    <!-- Контент анонса (с обычной галереей WordPress) -->
     <section class="mx-auto px-4 lg:px-8 py-16 max-w-4xl container">
-      <template v-for="(part, index) in contentParts" :key="index">
-        <div v-if="part.type === 'html'" v-html="part.content" class="wp-content"></div>
-        <GallerySlider v-else-if="part.type === 'gallery'" :images="part.images" @image-click="openLightbox" />
-      </template>
+      <div v-html="article.content" class="wp-content"></div>
 
       <div class="mt-12 pt-8 border-border border-t">
         <NuxtLink to="/announcements"
@@ -55,7 +51,6 @@
 import { ArrowLeft } from 'lucide-vue-next'
 import { useRuntimeConfig } from '#app'
 import { decode } from 'html-entities'
-import GallerySlider from '~/components/GallerySlider.vue'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 const route = useRoute()
@@ -106,111 +101,6 @@ const formatDate = (dateStr: string) => {
 const fullUrl = computed(() => {
   const baseUrl = process.env.NUXT_PUBLIC_SITE_URL || 'https://kirmefhram.ru'
   return `${baseUrl}/announcements/${id}`
-})
-
-// --------------------------------------------------
-// Извлечение галерей и разбивка контента на части
-// --------------------------------------------------
-const galleries = computed(() => {
-  const content = article.value.content
-  if (!content) return []
-
-  const startRegex = /<figure class="wp-block-gallery[^>]*>/g
-  let startMatch
-  const result: { images: string[] }[] = []
-
-  while ((startMatch = startRegex.exec(content)) !== null) {
-    const startIndex = startMatch.index
-    const startTag = startMatch[0]
-    let depth = 1
-    let searchPos = startIndex + startTag.length
-    let endIndex = -1
-    while (depth > 0 && searchPos < content.length) {
-      const nextOpen = content.indexOf('<figure', searchPos)
-      const nextClose = content.indexOf('</figure>', searchPos)
-      if (nextClose === -1) break
-      if (nextOpen !== -1 && nextOpen < nextClose) {
-        depth++
-        searchPos = nextOpen + '<figure'.length
-      } else {
-        depth--
-        if (depth === 0) {
-          endIndex = nextClose + '</figure>'.length
-          break
-        }
-        searchPos = nextClose + '</figure>'.length
-      }
-    }
-    if (endIndex === -1) continue
-
-    const galleryContent = content.substring(startIndex + startTag.length, endIndex - '</figure>'.length)
-    const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/g
-    const urls: string[] = []
-    let imgMatch
-    while ((imgMatch = imgRegex.exec(galleryContent)) !== null) {
-      urls.push(imgMatch[1])
-    }
-    result.push({ images: urls })
-  }
-
-  return result
-})
-
-const contentParts = computed(() => {
-  let html = article.value.content
-  const parts: { type: 'html' | 'gallery'; content?: string; images?: string[] }[] = []
-  const startRegex = /<figure class="wp-block-gallery[^>]*>/g
-  let startMatch
-  let lastIndex = 0
-  let galleryIdx = 0
-
-  while ((startMatch = startRegex.exec(html)) !== null) {
-    const startIndex = startMatch.index
-    const startTag = startMatch[0]
-    let depth = 1
-    let searchPos = startIndex + startTag.length
-    let endIndex = -1
-    while (depth > 0 && searchPos < html.length) {
-      const nextOpen = html.indexOf('<figure', searchPos)
-      const nextClose = html.indexOf('</figure>', searchPos)
-      if (nextClose === -1) break
-      if (nextOpen !== -1 && nextOpen < nextClose) {
-        depth++
-        searchPos = nextOpen + '<figure'.length
-      } else {
-        depth--
-        if (depth === 0) {
-          endIndex = nextClose + '</figure>'.length
-          break
-        }
-        searchPos = nextClose + '</figure>'.length
-      }
-    }
-    if (endIndex === -1) continue
-
-    if (startIndex > lastIndex) {
-      const textBefore = html.substring(lastIndex, startIndex)
-      if (textBefore.trim()) {
-        parts.push({ type: 'html', content: textBefore })
-      }
-    }
-
-    if (galleries.value[galleryIdx]) {
-      parts.push({ type: 'gallery', images: galleries.value[galleryIdx].images })
-    }
-
-    lastIndex = endIndex
-    galleryIdx++
-  }
-
-  if (lastIndex < html.length) {
-    const textAfter = html.substring(lastIndex)
-    if (textAfter.trim()) {
-      parts.push({ type: 'html', content: textAfter })
-    }
-  }
-
-  return parts
 })
 
 // Лайтбокс
@@ -332,6 +222,7 @@ useHead({
   max-width: 100%;
   height: auto;
   border-radius: 0.5rem;
+  cursor: pointer;
 }
 
 /* Выравнивание */
@@ -417,6 +308,8 @@ useHead({
   color: rgb(138, 45, 30);
   text-decoration: underline;
   transition: color 0.2s;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 }
 
 .wp-content :deep(a:hover) {
@@ -551,9 +444,42 @@ useHead({
   list-style-position: inside;
 }
 
-/* Адаптив */
+/* ======= СТАНДАРТНАЯ ГАЛЕРЕЯ WORDPRESS (сетка) ======= */
+.wp-content :deep(.wp-block-gallery) {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)) !important;
+  gap: 16px !important;
+  margin: 2rem 0 !important;
+}
+
+.wp-content :deep(.wp-block-gallery .blocks-gallery-item) {
+  margin: 0 !important;
+  position: relative;
+}
+
+.wp-content :deep(.wp-block-gallery figure) {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.wp-content :deep(.wp-block-gallery img) {
+  width: 100% !important;
+  height: auto !important;
+  object-fit: cover;
+  border-radius: 8px;
+  transition: transform 0.2s;
+  cursor: pointer;
+}
+
+.wp-content :deep(.wp-block-gallery img:hover) {
+  transform: scale(1.02);
+}
+
+/* ======= АДАПТИВ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ ======= */
 @media (max-width: 768px) {
 
+  /* Отмена обтекания для выравненных элементов */
   .wp-content :deep(.alignleft),
   .wp-content :deep(.alignright),
   .wp-content :deep(figure.alignleft),
@@ -561,6 +487,31 @@ useHead({
     float: none;
     display: block;
     margin: 1em auto;
+  }
+
+  /* Адаптив для iframe (видео) — только на мобилках */
+  .wp-content :deep(iframe) {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 16 / 9;
+    border-radius: 0.5rem;
+    display: block;
+    box-sizing: border-box;
+  }
+
+  /* Галерея: 2 колонки на планшетах/телефонах */
+  .wp-content :deep(.wp-block-gallery) {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+    gap: 12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+
+  /* На очень узких экранах — 1 колонка */
+  .wp-content :deep(.wp-block-gallery) {
+    grid-template-columns: 1fr !important;
   }
 }
 </style>
