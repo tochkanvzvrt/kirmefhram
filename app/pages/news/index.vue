@@ -71,12 +71,19 @@
       </div>
 
       <div v-if="store.totalNewsPages > 1" class="flex justify-center gap-2 mt-10">
-        <button v-for="page in store.totalNewsPages" :key="page" @click="goToPage(page)" :class="[
-          'px-4 py-2 rounded-lg transition',
-          page === store.currentNewsPage ? 'bg-primary text-white' : 'bg-muted hover:bg-primary/10'
-        ]">
-          {{ page }}
-        </button>
+        <button @click="goToPage(store.currentNewsPage - 1)" :disabled="store.currentNewsPage === 1"
+          class="px-4 py-2 rounded-lg bg-muted">←</button>
+
+        <template v-for="page in visiblePages" :key="page">
+          <span v-if="page === '...'" class="px-4 py-2">...</span>
+          <button v-else @click="goToPage(page)"
+            :class="['px-4 py-2 rounded-lg transition', page === store.currentNewsPage ? 'bg-primary text-white' : 'bg-muted hover:bg-primary/10']">
+            {{ page }}
+          </button>
+        </template>
+
+        <button @click="goToPage(store.currentNewsPage + 1)" :disabled="store.currentNewsPage === store.totalNewsPages"
+          class="px-4 py-2 rounded-lg bg-muted">→</button>
       </div>
     </section>
   </div>
@@ -169,6 +176,15 @@ const getLead = (article: any) => {
   const text = article.excerpt && article.excerpt !== '' ? article.excerpt : article.content
   return stripHtml(text).slice(0, 250)
 }
+// Минимальная умная пагинация
+const visiblePages = computed(() => {
+  const c = store.currentNewsPage
+  const t = store.totalNewsPages
+  if (t <= 5) return Array.from({ length: t }, (_, i) => i + 1)
+  if (c <= 3) return [1, 2, 3, 4, '...', t]
+  if (c >= t - 2) return [1, '...', t - 3, t - 2, t - 1, t]
+  return [1, '...', c - 1, c, c + 1, '...', t]
+})
 
 useHead({
   title: 'Новости | Кирилло-Мефодиевский храм',
