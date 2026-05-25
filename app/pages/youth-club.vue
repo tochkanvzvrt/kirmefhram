@@ -157,27 +157,28 @@
         </div>
 
         <div v-else class="gap-8 grid grid-cols-1 md:grid-cols-2 mx-auto mb-8 max-w-5xl">
-          <Card v-for="item in latestYouthGalleries" :key="item.id"
-            class="group hover:shadow-xl overflow-hidden transition-shadow">
-            <div class="bg-muted aspect-video overflow-hidden">
-              <img :src="item.image || '/images/question.png'" :alt="item.title"
-                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                @error="(e) => e.target.src = '/images/question.png'" />
-            </div>
-            <div class="p-6">
-              <div class="flex items-center gap-2 mb-3 text-muted-foreground text-sm">
-                <Calendar class="w-4 h-4" />
-                <span>{{ formatDate(item.date) }}</span>
+          <NuxtLink v-for="item in latestYouthGalleries" :key="item.id" :to="getGalleryUrl(item)" class="block">
+            <Card class="group hover:shadow-xl overflow-hidden transition-shadow cursor-pointer h-full flex flex-col">
+              <div class="bg-muted aspect-video overflow-hidden">
+                <img :src="item.image || '/images/question.png'" :alt="item.title"
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  @error="(e) => e.target.src = '/images/question.png'" />
               </div>
-              <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">
-                {{ item.title }}
-              </h3>
-              <div class="flex items-center gap-2 text-muted-foreground text-sm">
-                <ImageIcon class="w-4 h-4" />
-                <span>{{ item.photosCount }} фото</span>
+              <div class="flex flex-col flex-1 p-6">
+                <div class="flex items-center gap-2 text-muted-foreground text-sm mb-3">
+                  <Calendar class="w-4 h-4 flex-shrink-0" />
+                  <span>{{ formatDate(item.date) }}</span>
+                </div>
+                <h3 class="mb-3 font-serif group-hover:text-primary text-xl transition-colors line-clamp-2">
+                  {{ item.title }}
+                </h3>
+                <!-- <div class="flex items-center gap-2 mt-auto text-muted-foreground text-sm">
+                  <ImageIcon class="w-4 h-4" />
+                  <span>{{ item.photosCount }} фото</span>
+                </div> -->
               </div>
-            </div>
-          </Card>
+            </Card>
+          </NuxtLink>
         </div>
 
         <div class="text-center">
