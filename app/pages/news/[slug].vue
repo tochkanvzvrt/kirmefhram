@@ -1,7 +1,7 @@
 <template>
   <div class="w-full">
     <!-- Hero с превью-фото или градиентом -->
-    <section class="relative flex justify-center items-center py-20 text-white overflow-hidden"
+    <section class="relative flex justify-center items-center py-28 text-white overflow-hidden"
       :class="article.image ? '' : 'bg-gradient-to-br from-primary to-primary/80'">
       <!-- Затемнённое превью-фото -->
       <img v-if="article.image" :src="article.image" :alt="article.title"
@@ -12,6 +12,7 @@
           {{ article.title }}
         </h1>
         <div class="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-white/80 text-sm md:text-base">
+          <span>{{ formatDate(article.date) }}</span>
           <span v-if="article.categories.length" class="flex flex-wrap justify-center gap-1">
             <span v-for="(cat, i) in article.categories" :key="cat.id">
               <span v-if="i > 0 || article.date" class="mr-1">•</span>{{ cat.name }}
@@ -21,15 +22,14 @@
       </div>
     </section>
 
-    <!-- Контент анонса (с обычной галереей WordPress) -->
+    <!-- Контент новости (с обычной галереей WordPress) -->
     <section class="mx-auto px-4 lg:px-8 py-16 max-w-4xl container">
       <div v-html="article.content" class="wp-content"></div>
 
       <div class="mt-12 pt-8 border-border border-t">
-        <NuxtLink to="/announcements"
-          class="inline-flex items-center gap-2 text-primary hover:underline transition-colors">
+        <NuxtLink to="/news" class="inline-flex items-center gap-2 text-primary hover:underline transition-colors">
           <ArrowLeft class="w-4 h-4" />
-          Вернуться к списку анонсов
+          Вернуться к списку новостей
         </NuxtLink>
       </div>
     </section>
@@ -56,26 +56,37 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 const route = useRoute()
 const config = useRuntimeConfig()
 const wpBase = config.public.wpApi
-const id = route.params.id
+const newsSlug = route.params.slug
 
 const stripHtml = (html: string): string => {
   if (!html) return ''
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
+// Запрос по slug — API возвращает массив
 const { data: articleData, error } = await useFetch(
-  `${wpBase}/wp-json/wp/v2/announcement/${id}?_embed=true`
+  `${wpBase}/wp-json/wp/v2/new`,
+  {
+    params: {
+      slug: newsSlug,
+      _embed: true,
+      status: 'publish'
+    }
+  }
 )
 
-if (error.value || !articleData.value) {
-  throw createError({ statusCode: 404, message: 'Анонс не найден' })
+// Проверяем: массив не пустой
+if (error.value || !articleData.value || !Array.isArray(articleData.value) || articleData.value.length === 0) {
+  throw createError({ statusCode: 404, message: 'Новость не найдена' })
 }
 
 const article = computed(() => {
-  const item = articleData.value as any
+  // Берём первый (и единственный) элемент массива
+  const item = articleData.value[0] as any
   const rawTitle = item.title?.rendered || 'Без названия'
   return {
     id: item.id,
+    slug: item.slug || '',
     title: decode(rawTitle),
     content: item.content?.rendered || '',
     date: item.date || '',
@@ -100,7 +111,7 @@ const formatDate = (dateStr: string) => {
 
 const fullUrl = computed(() => {
   const baseUrl = process.env.NUXT_PUBLIC_SITE_URL || 'https://kirmefhram.ru'
-  return `${baseUrl}/announcements/${id}`
+  return `${baseUrl}/news/${newsSlug}`
 })
 
 // Лайтбокс
@@ -222,7 +233,6 @@ useHead({
   max-width: 100%;
   height: auto;
   border-radius: 0.5rem;
-  cursor: pointer;
 }
 
 /* Выравнивание */
@@ -444,7 +454,7 @@ useHead({
   list-style-position: inside;
 }
 
-/* ======= СТАНДАРТНАЯ ГАЛЕРЕЯ WORDPRESS (сетка) ======= */
+/* ======= ГАЛЕРЕЯ WORDPRESS (БЛОК ГУТЕНБЕРГА) ======= */
 .wp-content :deep(.wp-block-gallery) {
   display: grid !important;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)) !important;
@@ -469,16 +479,28 @@ useHead({
   object-fit: cover;
   border-radius: 8px;
   transition: transform 0.2s;
-  cursor: pointer;
 }
 
 .wp-content :deep(.wp-block-gallery img:hover) {
   transform: scale(1.02);
 }
 
+/* Адаптив */
+@media (max-width: 768px) {
+  .wp-content :deep(.wp-block-gallery) {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+    gap: 12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .wp-content :deep(.wp-block-gallery) {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* ======= АДАПТИВ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ ======= */
 @media (max-width: 768px) {
-
   /* Отмена обтекания для выравненных элементов */
   .wp-content :deep(.alignleft),
   .wp-content :deep(.alignright),
@@ -501,17 +523,15 @@ useHead({
   }
 
   /* Галерея: 2 колонки на планшетах/телефонах */
-  .wp-content :deep(.wp-block-gallery) {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
-    gap: 12px !important;
+  .wp-content :deep(.gallery-item) {
+    flex: 0 1 calc(50% - 0.5rem);
   }
 }
 
 @media (max-width: 480px) {
-
   /* На очень узких экранах — 1 колонка */
-  .wp-content :deep(.wp-block-gallery) {
-    grid-template-columns: 1fr !important;
+  .wp-content :deep(.gallery-item) {
+    flex: 0 1 100%;
   }
 }
 </style>

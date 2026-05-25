@@ -134,7 +134,7 @@
             <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{ news.title }}
             </h3>
             <p class="flex-1 mb-4 text-muted-foreground line-clamp-5">{{ stripHtml(news.excerpt || news.content) }}</p>
-            <NuxtLink :to="`/news/${news.id}`"
+            <NuxtLink :to="getNewsUrl(news)"
               class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
               Читать полностью
               <ArrowRight class="w-4 h-4" />
@@ -167,8 +167,8 @@
                   <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{
                     news.title }}</h3>
                   <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">{{ stripHtml(news.excerpt || news.content)
-                  }}</p>
-                  <NuxtLink :to="`/news/${news.id}`"
+                    }}</p>
+                  <NuxtLink :to="getNewsUrl(news)"
                     class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
                     Читать полностью
                     <ArrowRight class="w-4 h-4" />
@@ -210,13 +210,10 @@
                 class="text-gray-400 text-sm">Нет изображения</span></div>
           </div>
           <div class="flex flex-col flex-1 p-6">
-            <!-- <div class="flex items-center gap-2 mb-3 text-muted-foreground text-sm">
-              <Calendar class="w-4 h-4" /><span>{{ formatDate(announcement.date) }}</span>
-            </div> -->
             <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-5 transition-colors">{{
               announcement.title }}</h3>
             <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">{{ stripHtml(announcement.content) }}</p>
-            <NuxtLink :to="`/announcements/${announcement.id}`"
+            <NuxtLink :to="getAnnouncementUrl(announcement)"
               class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
               Читать полностью
               <ArrowRight class="w-4 h-4" />
@@ -245,13 +242,10 @@
                       class="text-gray-400 text-sm">Нет изображения</span></div>
                 </div>
                 <div class="flex flex-col flex-1 p-6">
-                  <!-- <div class="flex items-center gap-2 mb-3 text-muted-foreground text-sm">
-                    <Calendar class="w-4 h-4" /><span>{{ formatDate(announcement.date) }}</span>
-                  </div> -->
                   <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{
                     announcement.title }}</h3>
                   <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">{{ stripHtml(announcement.content) }}</p>
-                  <NuxtLink :to="`/announcements/${announcement.id}`"
+                  <NuxtLink :to="getAnnouncementUrl(announcement)"
                     class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
                     Читать полностью
                     <ArrowRight class="w-4 h-4" />
@@ -461,6 +455,21 @@ const upcomingSchedule = computed(() => {
     return { date: item.date || '', month: monthNames[monthNum - 1] || '', day: item.day || '', liturgical: item.liturgical || '', services: item.services || '' }
   })
 })
+
+// Функции для формирования URL с использованием slug
+const getNewsUrl = (news: any): string => {
+  if (news.slug && news.slug.trim() !== '') {
+    return `/news/${news.slug}`
+  }
+  return `/news/${news.id}`
+}
+
+const getAnnouncementUrl = (announcement: any): string => {
+  if (announcement.slug && announcement.slug.trim() !== '') {
+    return `/announcements/${announcement.slug}`
+  }
+  return `/announcements/${announcement.id}`
+}
 
 const formatDate = (dateStr: string): string => {
   if (!dateStr) return ''

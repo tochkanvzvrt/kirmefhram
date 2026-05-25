@@ -8,6 +8,7 @@ interface Announcement {
   excerpt?: string
   date: string
   link: string
+  slug: string
   image: string | null
   categories: { id: number; name: string; slug: string }[]
 }
@@ -19,8 +20,21 @@ interface NewsItem {
   excerpt?: string
   date: string
   link: string
+  slug: string
   categories: { id: number; name: string; slug: string }[]
   image: string | null
+}
+
+interface PhotoGallery {
+  id: number
+  title: string
+  content: string
+  excerpt?: string
+  date: string
+  link: string
+  slug: string
+  image: string | null
+  categories: { id: number; name: string; slug: string }[]
 }
 
 interface ScheduleDay {
@@ -33,13 +47,15 @@ interface ScheduleDay {
 
 export const useContentStore = defineStore('content', {
   state: () => ({
-    // Для пагинации (страницы /news, /announcements)
+    // Для пагинации (страницы /news, /announcements, /photogallery)
     announcements: [] as Announcement[],
     news: [] as NewsItem[],
+    photogalleries: [] as PhotoGallery[],
 
     // Для ленты (главная страница)
     feedNews: [] as NewsItem[],
     feedAnnouncements: [] as Announcement[],
+    feedPhotogalleries: [] as PhotoGallery[],
 
     schedule: [] as ScheduleDay[],
 
@@ -47,17 +63,27 @@ export const useContentStore = defineStore('content', {
     totalNewsPages: 0,
     currentNewsPage: 1,
     newsPerPage: 20,
+    totalNewsItems: 0,
 
     totalAnnouncementPages: 0,
     currentAnnouncementPage: 1,
     announcementsPerPage: 20,
+    totalAnnouncementItems: 0,
+
+    totalPhotogalleryPages: 0,
+    currentPhotogalleryPage: 1,
+    photogalleriesPerPage: 20,
+    totalPhotogalleryItems: 0,
 
     // Все категории из WordPress
     allNewsCategoriesList: [] as { id: number; name: string; slug: string }[],
     allAnnouncementCategoriesList: [] as { id: number; name: string; slug: string }[],
+    allPhotogalleryCategoriesList: [] as { id: number; name: string; slug: string }[],
   }),
 
   actions: {
+    // ==================== КАТЕГОРИИ ====================
+
     async fetchAllNewsCategories() {
       if (this.allNewsCategoriesList.length > 0) return
       const config = useRuntimeConfig()
@@ -100,7 +126,29 @@ export const useContentStore = defineStore('content', {
       }
     },
 
-    // Для ленты (главная страница) – сохраняет в feedNews
+    async fetchAllPhotogalleryCategories() {
+      if (this.allPhotogalleryCategoriesList.length > 0) return
+      const config = useRuntimeConfig()
+      const wpBase = config.public.wpApi
+      try {
+        const data = await $fetch(`${wpBase}/wp-json/wp/v2/categories`, {
+          params: { per_page: 100, orderby: 'name', order: 'asc' }
+        })
+        if (Array.isArray(data)) {
+          this.allPhotogalleryCategoriesList = data.map((cat: any) => ({
+            id: cat.id,
+            name: cat.name,
+            slug: cat.slug,
+          }))
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки всех категорий фотогалерей:', err)
+        this.allPhotogalleryCategoriesList = []
+      }
+    },
+
+    // ==================== ЛЕНТА (главная страница) ====================
+
     async fetchNews() {
       const config = useRuntimeConfig()
       const wpBase = config.public.wpApi
@@ -116,6 +164,7 @@ export const useContentStore = defineStore('content', {
             excerpt: item.excerpt?.rendered || '',
             date: item.date || '',
             link: item.link || '',
+            slug: item.slug || '',
             categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
               id: term.id,
               name: term.name,
@@ -130,51 +179,6 @@ export const useContentStore = defineStore('content', {
       }
     },
 
-    // Для страницы /news – сохраняет в news
-    async fetchNewsPage(page: number, perPage: number = 20, categoryId?: number) {
-      const config = useRuntimeConfig()
-      const wpBase = config.public.wpApi
-      const params: any = {
-        _embed: true,
-        per_page: perPage,
-        page: page,
-        orderby: 'date',
-        order: 'desc'
-      }
-      if (categoryId) {
-        params.categories = categoryId
-      }
-      try {
-        const response = await $fetch.raw(`${wpBase}/wp-json/wp/v2/new`, { params })
-        const data = response._data
-        if (Array.isArray(data)) {
-          this.news = data.map((item: any) => ({
-            id: item.id,
-            title: item.title?.rendered || 'Без названия',
-            content: item.content?.rendered || '',
-            excerpt: item.excerpt?.rendered || '',
-            date: item.date || '',
-            link: item.link || '',
-            categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
-              id: term.id,
-              name: term.name,
-              slug: term.slug,
-            })) || [],
-            image: item._embedded?.['wp:featuredmedia']?.[0]?.source_url || null,
-          }))
-        }
-        const totalPages = response.headers?.get('x-wp-totalpages')
-        if (totalPages) this.totalNewsPages = parseInt(totalPages)
-        const totalItems = response.headers?.get('x-wp-total')
-        if (totalItems) this.totalNewsItems = parseInt(totalItems)
-        this.currentNewsPage = page
-      } catch (err) {
-        console.error('Ошибка загрузки страницы новостей:', err)
-        this.news = []
-      }
-    },
-
-    // Для ленты (главная страница) – сохраняет в feedAnnouncements
     async fetchAnnouncements() {
       const config = useRuntimeConfig()
       const wpBase = config.public.wpApi
@@ -205,6 +209,7 @@ export const useContentStore = defineStore('content', {
               excerpt: item.excerpt?.rendered || '',
               date: item.date || '',
               link: item.link || '',
+              slug: item.slug || '',
               categories,
               image,
             }
@@ -216,7 +221,94 @@ export const useContentStore = defineStore('content', {
       }
     },
 
-    // Для страницы /announcements – сохраняет в announcements
+    async fetchPhotogalleries() {
+      const config = useRuntimeConfig()
+      const wpBase = config.public.wpApi
+      try {
+        const data = await $fetch(`${wpBase}/wp-json/wp/v2/photogallery`, {
+          params: { _embed: true, per_page: 20 }
+        })
+        if (Array.isArray(data)) {
+          this.feedPhotogalleries = data.map((item: any) => {
+            let categories: { id: number; name: string; slug: string }[] = []
+            const terms = item._embedded?.['wp:term']
+            if (terms && Array.isArray(terms) && terms[0] && Array.isArray(terms[0])) {
+              categories = terms[0].map((term: any) => ({
+                id: term.id,
+                name: term.name,
+                slug: term.slug,
+              }))
+            }
+            let image: string | null = null
+            const media = item._embedded?.['wp:featuredmedia']
+            if (media && Array.isArray(media) && media[0]?.source_url) {
+              image = media[0].source_url
+            }
+            return {
+              id: item.id,
+              title: item.title?.rendered || 'Без названия',
+              content: item.content?.rendered || '',
+              excerpt: item.excerpt?.rendered || '',
+              date: item.date || '',
+              link: item.link || '',
+              slug: item.slug || '',
+              categories,
+              image,
+            }
+          })
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки фотогалерей:', err)
+        this.feedPhotogalleries = []
+      }
+    },
+
+    // ==================== ПАГИНАЦИЯ ====================
+
+    async fetchNewsPage(page: number, perPage: number = 20, categoryId?: number) {
+      const config = useRuntimeConfig()
+      const wpBase = config.public.wpApi
+      const params: any = {
+        _embed: true,
+        per_page: perPage,
+        page: page,
+        orderby: 'date',
+        order: 'desc'
+      }
+      if (categoryId) {
+        params.categories = categoryId
+      }
+      try {
+        const response = await $fetch.raw(`${wpBase}/wp-json/wp/v2/new`, { params })
+        const data = response._data
+        if (Array.isArray(data)) {
+          this.news = data.map((item: any) => ({
+            id: item.id,
+            title: item.title?.rendered || 'Без названия',
+            content: item.content?.rendered || '',
+            excerpt: item.excerpt?.rendered || '',
+            date: item.date || '',
+            link: item.link || '',
+            slug: item.slug || '',
+            categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
+              id: term.id,
+              name: term.name,
+              slug: term.slug,
+            })) || [],
+            image: item._embedded?.['wp:featuredmedia']?.[0]?.source_url || null,
+          }))
+        }
+        const totalPages = response.headers?.get('x-wp-totalpages')
+        if (totalPages) this.totalNewsPages = parseInt(totalPages)
+        const totalItems = response.headers?.get('x-wp-total')
+        if (totalItems) this.totalNewsItems = parseInt(totalItems)
+        this.currentNewsPage = page
+      } catch (err) {
+        console.error('Ошибка загрузки страницы новостей:', err)
+        this.news = []
+      }
+    },
+
     async fetchAnnouncementsPage(page: number, perPage: number = 20, categoryId?: number) {
       const config = useRuntimeConfig()
       const wpBase = config.public.wpApi
@@ -256,6 +348,7 @@ export const useContentStore = defineStore('content', {
               excerpt: item.excerpt?.rendered || '',
               date: item.date || '',
               link: item.link || '',
+              slug: item.slug || '',
               categories,
               image,
             }
@@ -271,6 +364,64 @@ export const useContentStore = defineStore('content', {
         this.announcements = []
       }
     },
+
+    async fetchPhotogalleriesPage(page: number, perPage: number = 20, categoryId?: number) {
+      const config = useRuntimeConfig()
+      const wpBase = config.public.wpApi
+      const params: any = {
+        _embed: true,
+        per_page: perPage,
+        page: page,
+        orderby: 'date',
+        order: 'desc'
+      }
+      if (categoryId) {
+        params.categories = categoryId
+      }
+      try {
+        const response = await $fetch.raw(`${wpBase}/wp-json/wp/v2/photogallery`, { params })
+        const data = response._data
+        if (Array.isArray(data)) {
+          this.photogalleries = data.map((item: any) => {
+            let categories: { id: number; name: string; slug: string }[] = []
+            const terms = item._embedded?.['wp:term']
+            if (terms && Array.isArray(terms) && terms[0] && Array.isArray(terms[0])) {
+              categories = terms[0].map((term: any) => ({
+                id: term.id,
+                name: term.name,
+                slug: term.slug,
+              }))
+            }
+            let image: string | null = null
+            const media = item._embedded?.['wp:featuredmedia']
+            if (media && Array.isArray(media) && media[0]?.source_url) {
+              image = media[0].source_url
+            }
+            return {
+              id: item.id,
+              title: item.title?.rendered || 'Без названия',
+              content: item.content?.rendered || '',
+              excerpt: item.excerpt?.rendered || '',
+              date: item.date || '',
+              link: item.link || '',
+              slug: item.slug || '',
+              categories,
+              image,
+            }
+          })
+        }
+        const totalPages = response.headers?.get('x-wp-totalpages')
+        if (totalPages) this.totalPhotogalleryPages = parseInt(totalPages)
+        const totalItems = response.headers?.get('x-wp-total')
+        if (totalItems) this.totalPhotogalleryItems = parseInt(totalItems)
+        this.currentPhotogalleryPage = page
+      } catch (err) {
+        console.error('Ошибка загрузки страницы фотогалерей:', err)
+        this.photogalleries = []
+      }
+    },
+
+    // ==================== РАСПИСАНИЕ ====================
 
     async fetchSchedule() {
       const config = useRuntimeConfig()
@@ -406,13 +557,14 @@ export const useContentStore = defineStore('content', {
     },
   },
 
+  // ==================== GETTERS ====================
+
   getters: {
-    // Новости для пагинации
+    // --- Новости ---
     sortedNews(): NewsItem[] {
       return [...this.news].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     },
 
-    // Новости для ленты (главная)
     latestNews(): NewsItem[] {
       return [...this.feedNews].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4)
     },
@@ -427,12 +579,11 @@ export const useContentStore = defineStore('content', {
       return [{ id: 'all', name: 'Все новости' }, ...Array.from(cats.values())]
     },
 
-    // Анонсы для пагинации
+    // --- Анонсы ---
     sortedAnnouncements(): Announcement[] {
       return [...this.announcements].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     },
 
-    // Анонсы для ленты (главная)
     latestAnnouncements(): Announcement[] {
       return [...this.feedAnnouncements].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4)
     },
@@ -447,6 +598,26 @@ export const useContentStore = defineStore('content', {
       return [{ id: 'all', name: 'Все анонсы' }, ...Array.from(cats.values())]
     },
 
+    // --- Фотогалереи ---
+    sortedPhotogalleries(): PhotoGallery[] {
+      return [...this.photogalleries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    },
+
+    latestPhotogalleries(): PhotoGallery[] {
+      return [...this.feedPhotogalleries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4)
+    },
+
+    allPhotogalleryCategories(): { id: string | number; name: string }[] {
+      const cats = new Map()
+      this.photogalleries.forEach(gallery => {
+        gallery.categories.forEach(cat => {
+          if (!cats.has(cat.id)) cats.set(cat.id, { id: cat.id, name: cat.name })
+        })
+      })
+      return [{ id: 'all', name: 'Все галереи' }, ...Array.from(cats.values())]
+    },
+
+    // --- Расписание ---
     sortedSchedule(): ScheduleDay[] {
       return [...this.schedule].sort((a, b) => a.fullDate.localeCompare(b.fullDate))
     },

@@ -73,7 +73,7 @@
               <p class="mb-4 text-muted-foreground line-clamp-3">
                 {{ stripHtml(item.excerpt || item.content) }}
               </p>
-              <NuxtLink :to="`/news/${item.id}`"
+              <NuxtLink :to="getNewsUrl(item)"
                 class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
                 Читать полностью
                 <ArrowRight class="w-4 h-4" />
@@ -83,7 +83,8 @@
         </div>
 
         <div class="text-center">
-          <NuxtLink :to="`/news?category=${YOUTH_CATEGORY_ID}`" class="inline-flex items-center gap-2 text-primary hover:underline">
+          <NuxtLink :to="`/news?category=${YOUTH_CATEGORY_ID}`"
+            class="inline-flex items-center gap-2 text-primary hover:underline">
             Все новости
             <ArrowRight class="w-4 h-4" />
           </NuxtLink>
@@ -123,7 +124,7 @@
               <p class="mb-4 text-muted-foreground line-clamp-3">
                 {{ stripHtml(item.content) }}
               </p>
-              <NuxtLink :to="`/announcements/${item.id}`"
+              <NuxtLink :to="getAnnouncementUrl(item)"
                 class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
                 Читать полностью
                 <ArrowRight class="w-4 h-4" />
@@ -133,8 +134,56 @@
         </div>
 
         <div class="text-center">
-          <NuxtLink :to="`/announcements?category=${YOUTH_CATEGORY_ID}`" class="inline-flex items-center gap-2 text-primary hover:underline">
+          <NuxtLink :to="`/announcements?category=${YOUTH_CATEGORY_ID}`"
+            class="inline-flex items-center gap-2 text-primary hover:underline">
             Все анонсы
+            <ArrowRight class="w-4 h-4" />
+          </NuxtLink>
+        </div>
+      </div>
+    </section>
+
+    <!-- Последние фотогалереи молодёжного кружка -->
+    <section class="bg-white py-16">
+      <div class="mx-auto px-4 lg:px-8 container">
+        <h2 class="mb-8 font-serif text-primary text-4xl text-center">Фотогалереи молодёжного кружка</h2>
+
+        <div v-if="loadingYouthGalleries" class="py-16 text-center">
+          <p class="text-muted-foreground">Загрузка галерей...</p>
+        </div>
+
+        <div v-else-if="latestYouthGalleries.length === 0" class="py-16 text-center">
+          <p class="text-muted-foreground">Галерей пока нет</p>
+        </div>
+
+        <div v-else class="gap-8 grid grid-cols-1 md:grid-cols-2 mx-auto mb-8 max-w-5xl">
+          <Card v-for="item in latestYouthGalleries" :key="item.id"
+            class="group hover:shadow-xl overflow-hidden transition-shadow">
+            <div class="bg-muted aspect-video overflow-hidden">
+              <img :src="item.image || '/images/question.png'" :alt="item.title"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                @error="(e) => e.target.src = '/images/question.png'" />
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2 mb-3 text-muted-foreground text-sm">
+                <Calendar class="w-4 h-4" />
+                <span>{{ formatDate(item.date) }}</span>
+              </div>
+              <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">
+                {{ item.title }}
+              </h3>
+              <div class="flex items-center gap-2 text-muted-foreground text-sm">
+                <ImageIcon class="w-4 h-4" />
+                <span>{{ item.photosCount }} фото</span>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        <div class="text-center">
+          <NuxtLink :to="`/gallery?category=${YOUTH_CATEGORY_ID}`"
+            class="inline-flex items-center gap-2 text-primary hover:underline">
+            Все галереи
             <ArrowRight class="w-4 h-4" />
           </NuxtLink>
         </div>
@@ -145,7 +194,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Users, Heart, Calendar, Clock, MapPin, ArrowRight } from 'lucide-vue-next'
+import { Users, Heart, Calendar, Clock, MapPin, ArrowRight, ImageIcon } from 'lucide-vue-next'
 import Card from '~/components/ui/Card.vue'
 import Badge from '~/components/ui/Badge.vue'
 import { useContentStore } from '~/stores/content'
@@ -155,6 +204,7 @@ const store = useContentStore()
 const loading = ref(true)
 const loadingYouthNews = ref(false)
 const loadingYouthAnnouncements = ref(false)
+const loadingYouthGalleries = ref(false)
 
 const youthClubText = ref<string>('')
 const joinText = ref<string>('')
@@ -248,18 +298,68 @@ async function fetchYouthAnnouncements() {
   }
 }
 
+// Загружаем 4 последние галереи по категории «Молодёжный кружок» напрямую из API
+const youthGalleries = ref<any[]>([])
+async function fetchYouthGalleries() {
+  loadingYouthGalleries.value = true
+  try {
+    const config = useRuntimeConfig()
+    const wpBase = config.public.wpApi
+    const data = await $fetch(`${wpBase}/wp-json/wp/v2/photogallery`, {
+      params: {
+        per_page: 4,
+        categories: YOUTH_CATEGORY_ID,
+        orderby: 'date',
+        order: 'desc'
+      }
+    })
+    if (Array.isArray(data)) {
+      youthGalleries.value = data
+    }
+  } catch (err) {
+    console.error('fetchYouthGalleries error:', err)
+    youthGalleries.value = []
+  } finally {
+    loadingYouthGalleries.value = false
+  }
+}
+
 onMounted(async () => {
   await Promise.all([
     fetchYouthClub(),
     fetchYouthNews(),
-    fetchYouthAnnouncements()
+    fetchYouthAnnouncements(),
+    fetchYouthGalleries()
   ])
 })
+
+// Функции для формирования URL с использованием slug
+const getNewsUrl = (item: any): string => {
+  if (item.slug && item.slug.trim() !== '') {
+    return `/news/${item.slug}`
+  }
+  return `/news/${item.id}`
+}
+
+const getAnnouncementUrl = (item: any): string => {
+  if (item.slug && item.slug.trim() !== '') {
+    return `/announcements/${item.slug}`
+  }
+  return `/announcements/${item.id}`
+}
+
+const getGalleryUrl = (item: any): string => {
+  if (item.slug && item.slug.trim() !== '' && item.slug !== String(item.id)) {
+    return `/gallery/${item.slug}`
+  }
+  return `/gallery/${item.id}`
+}
 
 // Преобразуем сырые данные новостей
 const latestYouthNews = computed(() => {
   return youthNews.value.map((item: any) => ({
     id: item.id,
+    slug: item.slug || '',
     title: decode(item.title?.rendered || 'Без названия'),
     content: item.content?.rendered || '',
     excerpt: item.excerpt?.rendered || '',
@@ -277,6 +377,7 @@ const latestYouthNews = computed(() => {
 const latestYouthAnnouncements = computed(() => {
   return youthAnnouncements.value.map((item: any) => ({
     id: item.id,
+    slug: item.slug || '',
     title: decode(item.title?.rendered || 'Без названия'),
     content: item.content?.rendered || '',
     date: item.date || '',
@@ -287,6 +388,27 @@ const latestYouthAnnouncements = computed(() => {
       slug: term.slug,
     })) || [],
   }))
+})
+
+// Преобразуем сырые данные галерей
+const latestYouthGalleries = computed(() => {
+  return youthGalleries.value.map((item: any) => {
+    let coverImage = item.photo?.guid || null
+    if (coverImage) {
+      coverImage = coverImage.replace(/\\\\/g, '\\')
+    }
+    
+    const photosCount = Array.isArray(item.gallery_photos) ? item.gallery_photos.length : 0
+    
+    return {
+      id: item.id,
+      slug: item.slug || '',
+      title: decode(item.title?.rendered || item.albumname || 'Без названия'),
+      date: item.date || '',
+      image: coverImage,
+      photosCount,
+    }
+  })
 })
 
 const formatDate = (dateStr: string): string => {

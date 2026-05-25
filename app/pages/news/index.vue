@@ -38,7 +38,7 @@
         <p class="text-muted-foreground text-lg">Новостей в этой категории пока нет</p>
       </div>
       <div v-else class="gap-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        <NuxtLink v-for="article in filteredNews" :key="article.id" :to="`/news/${article.id}`" class="block">
+        <NuxtLink v-for="article in filteredNews" :key="article.id" :to="getArticleUrl(article)" class="block">
           <Card class="group hover:shadow-xl overflow-hidden transition-shadow cursor-pointer h-full flex flex-col">
             <div class="bg-muted aspect-video overflow-hidden">
               <img :src="article.image || '/images/question.png'" :alt="article.title"
@@ -136,6 +136,14 @@ const filteredNews = computed(() => {
   }))
 })
 
+// Функция для формирования URL с использованием slug, с fallback на id
+const getArticleUrl = (article: any): string => {
+  if (article.slug && article.slug.trim() !== '') {
+    return `/news/${article.slug}`
+  }
+  return `/news/${article.id}`
+}
+
 async function selectCategory(catId: number | null) {
   activeCategoryId.value = catId
   loading.value = true
@@ -176,6 +184,7 @@ const getLead = (article: any) => {
   const text = article.excerpt && article.excerpt !== '' ? article.excerpt : article.content
   return stripHtml(text).slice(0, 250)
 }
+
 // Минимальная умная пагинация
 const visiblePages = computed(() => {
   const c = store.currentNewsPage

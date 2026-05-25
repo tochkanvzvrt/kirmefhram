@@ -41,7 +41,7 @@
         <p class="text-muted-foreground text-lg">Анонсов в этой категории пока нет</p>
       </div>
       <div v-else class="gap-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        <NuxtLink v-for="article in filteredAnnouncements" :key="article.id" :to="`/announcements/${article.id}`"
+        <NuxtLink v-for="article in filteredAnnouncements" :key="article.id" :to="getArticleUrl(article)"
           class="block">
           <Card class="group hover:shadow-xl overflow-hidden transition-shadow cursor-pointer h-full flex flex-col">
             <div class="flex justify-center items-center bg-muted aspect-video overflow-hidden">
@@ -139,6 +139,14 @@ const filteredAnnouncements = computed(() => {
     title: decode(item.title || '')
   }))
 })
+
+// Функция для формирования URL с использованием slug, с fallback на id
+const getArticleUrl = (article: any): string => {
+  if (article.slug && article.slug.trim() !== '') {
+    return `/announcements/${article.slug}`
+  }
+  return `/announcements/${article.id}`
+}
 
 async function selectCategory(catId: number | null) {
   activeCategoryId.value = catId
