@@ -17,17 +17,10 @@
     <section class="mx-auto px-4 lg:px-8 py-16 container">
       <div class="mx-auto max-w-4xl">
         <div class="mb-16 max-w-none prose prose-lg">
-          <p v-if="loading" class="text-muted-foreground text-lg leading-relaxed">
-            Загрузка информации...
-          </p>
-          <div v-else v-html="sundaySchoolText" class="text-muted-foreground text-lg leading-relaxed"></div>
+          <div v-html="sundaySchoolText" class="text-muted-foreground text-lg leading-relaxed"></div>
         </div>
 
-        <div v-if="loading" class="bg-muted/50 p-8 rounded-lg">
-          <p class="text-muted-foreground">Загрузка контактной информации...</p>
-        </div>
-
-        <div v-else class="bg-muted/50 p-8 rounded-lg">
+        <div class="bg-muted/50 p-8 rounded-lg">
           <div class="flex items-start gap-4 mb-6">
             <div class="flex flex-shrink-0 justify-center items-center bg-primary/10 rounded-full w-12 h-12">
               <Users class="w-6 h-6 text-primary" />
@@ -46,11 +39,7 @@
       <div class="mx-auto px-4 lg:px-8 container">
         <h2 class="mb-8 font-serif text-primary text-4xl text-center">Новости воскресной школы</h2>
 
-        <div v-if="loadingSundayNews" class="py-16 text-center">
-          <p class="text-muted-foreground">Загрузка новостей...</p>
-        </div>
-
-        <div v-else-if="latestSundaySchoolNews.length === 0" class="py-16 text-center">
+        <div v-if="latestSundaySchoolNews.length === 0" class="py-16 text-center">
           <p class="text-muted-foreground">Новостей пока нет</p>
         </div>
 
@@ -97,11 +86,7 @@
       <div class="mx-auto px-4 lg:px-8 container">
         <h2 class="mb-8 font-serif text-primary text-4xl text-center">Анонсы воскресной школы</h2>
 
-        <div v-if="loadingSundayAnnouncements" class="py-16 text-center">
-          <p class="text-muted-foreground">Загрузка анонсов...</p>
-        </div>
-
-        <div v-else-if="latestSundaySchoolAnnouncements.length === 0" class="py-16 text-center">
+        <div v-if="latestSundaySchoolAnnouncements.length === 0" class="py-16 text-center">
           <p class="text-muted-foreground">Анонсов пока нет</p>
         </div>
 
@@ -148,11 +133,7 @@
       <div class="mx-auto px-4 lg:px-8 container">
         <h2 class="mb-8 font-serif text-primary text-4xl text-center">Фотогалереи воскресной школы</h2>
 
-        <div v-if="loadingSundayGalleries" class="py-16 text-center">
-          <p class="text-muted-foreground">Загрузка галерей...</p>
-        </div>
-
-        <div v-else-if="latestSundaySchoolGalleries.length === 0" class="py-16 text-center">
+        <div v-if="latestSundaySchoolGalleries.length === 0" class="py-16 text-center">
           <p class="text-muted-foreground">Галерей пока нет</p>
         </div>
 
@@ -190,19 +171,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { GraduationCap, Clock, Users, Calendar, ArrowRight, BookOpen, ImageIcon } from 'lucide-vue-next'
+import { computed } from 'vue'
+import { GraduationCap, Users, Calendar, ArrowRight } from 'lucide-vue-next'
 import Card from '~/components/ui/Card.vue'
-import Badge from '~/components/ui/Badge.vue'
 import { decode } from 'html-entities'
-
-const loading = ref(true)
-const loadingSundayNews = ref(false)
-const loadingSundayAnnouncements = ref(false)
-const loadingSundayGalleries = ref(false)
-
-const sundaySchoolText = ref<string>('')
-const enrollmentText = ref<string>('')
 
 const SUNDAY_SCHOOL_CATEGORY_ID = 10
 
@@ -211,85 +183,51 @@ const formatText = (text: string): string => {
   return text.replace(/\r\n/g, '<br>').replace(/\n/g, '<br>').replace(/\t/g, '&nbsp;&nbsp;')
 }
 
-// ==================== ИСПРАВЛЕНО: используем useApi ====================
-const fetchSundaySchool = async () => {
-  try {
-    const { apiFetch } = useApi()
-    const data = await apiFetch<any[]>('/sundayschool')
-    if (Array.isArray(data) && data.length > 0) {
-      const item = data[0]
-      if (item.description) sundaySchoolText.value = formatText(item.description)
-      if (item.entry) enrollmentText.value = formatText(item.entry)
-    }
-  } catch (err) {
-    console.error('fetchSundaySchool error:', err)
-    sundaySchoolText.value = ''
-    enrollmentText.value = ''
-  } finally {
-    loading.value = false
+const { apiFetch } = useApi()
+
+// Загружаем описание воскресной школы
+const sundaySchoolData = ref<any>(null)
+try {
+  const data = await apiFetch<any[]>('/sundayschool')
+  if (Array.isArray(data) && data.length > 0) {
+    sundaySchoolData.value = data[0]
   }
+} catch (err) {
+  console.error('fetchSundaySchool error:', err)
 }
 
+const sundaySchoolText = computed(() => formatText(sundaySchoolData.value?.description || ''))
+const enrollmentText = computed(() => formatText(sundaySchoolData.value?.entry || ''))
+
+// Загружаем новости
 const sundayNews = ref<any[]>([])
-async function fetchSundayNews() {
-  loadingSundayNews.value = true
-  try {
-    const { apiFetch } = useApi()
-    const data = await apiFetch<any[]>('/new', {
-      params: { _embed: true, per_page: 4, categories: SUNDAY_SCHOOL_CATEGORY_ID, orderby: 'date', order: 'desc' }
-    })
-    if (Array.isArray(data)) sundayNews.value = data
-  } catch (err) {
-    console.error('fetchSundayNews error:', err)
-    sundayNews.value = []
-  } finally {
-    loadingSundayNews.value = false
-  }
+try {
+  sundayNews.value = await apiFetch<any[]>('/new', {
+    params: { _embed: true, per_page: 4, categories: SUNDAY_SCHOOL_CATEGORY_ID, orderby: 'date', order: 'desc' }
+  })
+} catch (err) {
+  console.error('fetchSundayNews error:', err)
 }
 
+// Загружаем анонсы
 const sundayAnnouncements = ref<any[]>([])
-async function fetchSundayAnnouncements() {
-  loadingSundayAnnouncements.value = true
-  try {
-    const { apiFetch } = useApi()
-    const data = await apiFetch<any[]>('/announcement', {
-      params: { _embed: true, per_page: 4, categories: SUNDAY_SCHOOL_CATEGORY_ID, orderby: 'date', order: 'desc' }
-    })
-    if (Array.isArray(data)) sundayAnnouncements.value = data
-  } catch (err) {
-    console.error('fetchSundayAnnouncements error:', err)
-    sundayAnnouncements.value = []
-  } finally {
-    loadingSundayAnnouncements.value = false
-  }
+try {
+  sundayAnnouncements.value = await apiFetch<any[]>('/announcement', {
+    params: { _embed: true, per_page: 4, categories: SUNDAY_SCHOOL_CATEGORY_ID, orderby: 'date', order: 'desc' }
+  })
+} catch (err) {
+  console.error('fetchSundayAnnouncements error:', err)
 }
 
+// Загружаем галереи
 const sundayGalleries = ref<any[]>([])
-async function fetchSundayGalleries() {
-  loadingSundayGalleries.value = true
-  try {
-    const { apiFetch } = useApi()
-    const data = await apiFetch<any[]>('/photogallery', {
-      params: { per_page: 4, categories: SUNDAY_SCHOOL_CATEGORY_ID, orderby: 'date', order: 'desc' }
-    })
-    if (Array.isArray(data)) sundayGalleries.value = data
-  } catch (err) {
-    console.error('fetchSundayGalleries error:', err)
-    sundayGalleries.value = []
-  } finally {
-    loadingSundayGalleries.value = false
-  }
+try {
+  sundayGalleries.value = await apiFetch<any[]>('/photogallery', {
+    params: { per_page: 4, categories: SUNDAY_SCHOOL_CATEGORY_ID, orderby: 'date', order: 'desc' }
+  })
+} catch (err) {
+  console.error('fetchSundayGalleries error:', err)
 }
-// =====================================================================
-
-onMounted(async () => {
-  await Promise.all([
-    fetchSundaySchool(),
-    fetchSundayNews(),
-    fetchSundayAnnouncements(),
-    fetchSundayGalleries()
-  ])
-})
 
 const getNewsUrl = (item: any): string => {
   if (item.slug && item.slug.trim() !== '') return `/news/${item.slug}`
@@ -307,7 +245,7 @@ const getGalleryUrl = (item: any): string => {
 }
 
 const latestSundaySchoolNews = computed(() => {
-  return sundayNews.value.map((item: any) => ({
+  return (sundayNews.value || []).map((item: any) => ({
     id: item.id,
     slug: item.slug || '',
     title: decode(item.title?.rendered || 'Без названия'),
@@ -322,7 +260,7 @@ const latestSundaySchoolNews = computed(() => {
 })
 
 const latestSundaySchoolAnnouncements = computed(() => {
-  return sundayAnnouncements.value.map((item: any) => ({
+  return (sundayAnnouncements.value || []).map((item: any) => ({
     id: item.id,
     slug: item.slug || '',
     title: decode(item.title?.rendered || 'Без названия'),
@@ -336,7 +274,7 @@ const latestSundaySchoolAnnouncements = computed(() => {
 })
 
 const latestSundaySchoolGalleries = computed(() => {
-  return sundayGalleries.value.map((item: any) => {
+  return (sundayGalleries.value || []).map((item: any) => {
     let coverImage = item.photo?.guid || null
     if (coverImage) coverImage = coverImage.replace(/\\\\/g, '\\')
     return {

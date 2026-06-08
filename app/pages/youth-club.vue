@@ -190,19 +190,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { Users, Heart, Calendar, Clock, MapPin, ArrowRight, ImageIcon } from 'lucide-vue-next'
+import { ref, computed } from 'vue'
+import { Users, Heart, Calendar, ArrowRight } from 'lucide-vue-next'
 import Card from '~/components/ui/Card.vue'
-import Badge from '~/components/ui/Badge.vue'
 import { decode } from 'html-entities'
-
-const loading = ref(true)
-const loadingYouthNews = ref(false)
-const loadingYouthAnnouncements = ref(false)
-const loadingYouthGalleries = ref(false)
-
-const youthClubText = ref<string>('')
-const joinText = ref<string>('')
 
 const YOUTH_CATEGORY_ID = 4
 
@@ -211,85 +202,52 @@ const formatText = (text: string): string => {
   return text.replace(/\r\n/g, '<br>').replace(/\n/g, '<br>').replace(/\t/g, '&nbsp;&nbsp;')
 }
 
-// ==================== ИСПРАВЛЕНО: используем useApi ====================
-const fetchYouthClub = async () => {
-  try {
-    const { apiFetch } = useApi()
-    const data = await apiFetch<any[]>('/youthclub')
-    if (Array.isArray(data) && data.length > 0) {
-      const item = data[0]
-      if (item.description) youthClubText.value = formatText(item.description)
-      if (item.entry) joinText.value = formatText(item.entry)
-    }
-  } catch (err) {
-    console.error('fetchYouthClub error:', err)
-    youthClubText.value = ''
-    joinText.value = ''
-  } finally {
-    loading.value = false
+// Загружаем данные об описании кружка
+const { apiFetch } = useApi()
+const youthData = ref<any>(null)
+
+try {
+  const data = await apiFetch<any[]>('/youthclub')
+  if (Array.isArray(data) && data.length > 0) {
+    youthData.value = data[0]
   }
+} catch (err) {
+  console.error('fetchYouthClub error:', err)
 }
 
+const youthClubText = computed(() => formatText(youthData.value?.description || ''))
+const joinText = computed(() => formatText(youthData.value?.entry || ''))
+const loading = computed(() => false)
+
+// Загружаем новости
 const youthNews = ref<any[]>([])
-async function fetchYouthNews() {
-  loadingYouthNews.value = true
-  try {
-    const { apiFetch } = useApi()
-    const data = await apiFetch<any[]>('/new', {
-      params: { _embed: true, per_page: 4, categories: YOUTH_CATEGORY_ID, orderby: 'date', order: 'desc' }
-    })
-    if (Array.isArray(data)) youthNews.value = data
-  } catch (err) {
-    console.error('fetchYouthNews error:', err)
-    youthNews.value = []
-  } finally {
-    loadingYouthNews.value = false
-  }
+try {
+  youthNews.value = await apiFetch<any[]>('/new', {
+    params: { _embed: true, per_page: 4, categories: YOUTH_CATEGORY_ID, orderby: 'date', order: 'desc' }
+  })
+} catch (err) {
+  console.error('fetchYouthNews error:', err)
 }
 
+// Загружаем анонсы
 const youthAnnouncements = ref<any[]>([])
-async function fetchYouthAnnouncements() {
-  loadingYouthAnnouncements.value = true
-  try {
-    const { apiFetch } = useApi()
-    const data = await apiFetch<any[]>('/announcement', {
-      params: { _embed: true, per_page: 4, categories: YOUTH_CATEGORY_ID, orderby: 'date', order: 'desc' }
-    })
-    if (Array.isArray(data)) youthAnnouncements.value = data
-  } catch (err) {
-    console.error('fetchYouthAnnouncements error:', err)
-    youthAnnouncements.value = []
-  } finally {
-    loadingYouthAnnouncements.value = false
-  }
+try {
+  youthAnnouncements.value = await apiFetch<any[]>('/announcement', {
+    params: { _embed: true, per_page: 4, categories: YOUTH_CATEGORY_ID, orderby: 'date', order: 'desc' }
+  })
+} catch (err) {
+  console.error('fetchYouthAnnouncements error:', err)
 }
 
+// Загружаем галереи
 const youthGalleries = ref<any[]>([])
-async function fetchYouthGalleries() {
-  loadingYouthGalleries.value = true
-  try {
-    const { apiFetch } = useApi()
-    const data = await apiFetch<any[]>('/photogallery', {
-      params: { per_page: 4, categories: YOUTH_CATEGORY_ID, orderby: 'date', order: 'desc' }
-    })
-    if (Array.isArray(data)) youthGalleries.value = data
-  } catch (err) {
-    console.error('fetchYouthGalleries error:', err)
-    youthGalleries.value = []
-  } finally {
-    loadingYouthGalleries.value = false
-  }
+try {
+  youthGalleries.value = await apiFetch<any[]>('/photogallery', {
+    params: { per_page: 4, categories: YOUTH_CATEGORY_ID, orderby: 'date', order: 'desc' }
+  })
+} catch (err) {
+  console.error('fetchYouthGalleries error:', err)
 }
-// =====================================================================
-
-onMounted(async () => {
-  await Promise.all([
-    fetchYouthClub(),
-    fetchYouthNews(),
-    fetchYouthAnnouncements(),
-    fetchYouthGalleries()
-  ])
-})
 
 const getNewsUrl = (item: any): string => {
   if (item.slug && item.slug.trim() !== '') return `/news/${item.slug}`
@@ -307,7 +265,7 @@ const getGalleryUrl = (item: any): string => {
 }
 
 const latestYouthNews = computed(() => {
-  return youthNews.value.map((item: any) => ({
+  return (youthNews.value || []).map((item: any) => ({
     id: item.id,
     slug: item.slug || '',
     title: decode(item.title?.rendered || 'Без названия'),
@@ -322,7 +280,7 @@ const latestYouthNews = computed(() => {
 })
 
 const latestYouthAnnouncements = computed(() => {
-  return youthAnnouncements.value.map((item: any) => ({
+  return (youthAnnouncements.value || []).map((item: any) => ({
     id: item.id,
     slug: item.slug || '',
     title: decode(item.title?.rendered || 'Без названия'),
@@ -336,7 +294,7 @@ const latestYouthAnnouncements = computed(() => {
 })
 
 const latestYouthGalleries = computed(() => {
-  return youthGalleries.value.map((item: any) => {
+  return (youthGalleries.value || []).map((item: any) => {
     let coverImage = item.photo?.guid || null
     if (coverImage) coverImage = coverImage.replace(/\\\\/g, '\\')
     return {

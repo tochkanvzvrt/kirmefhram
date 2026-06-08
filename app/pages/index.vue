@@ -164,7 +164,7 @@
                   <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{
                     news.title }}</h3>
                   <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">{{ stripHtml(news.excerpt || news.content)
-                    }}</p>
+                  }}</p>
                   <NuxtLink :to="getNewsUrl(news)"
                     class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
                     Читать полностью
@@ -322,13 +322,10 @@ useSeoMeta({
 
 const store = useContentStore()
 
-if (import.meta.server || store.feedNews.length === 0) {
+// Запросы только на сервере — клиент получает готовые данные
+if (import.meta.server) {
   await store.fetchNews()
-}
-if (import.meta.server || store.feedAnnouncements.length === 0) {
   await store.fetchAnnouncements()
-}
-if (import.meta.server || store.schedule.length === 0) {
   await store.fetchSchedule()
 }
 
@@ -401,7 +398,6 @@ function onAnnouncementsScroll() {
 
 let rotationTimer: ReturnType<typeof setInterval> | null = null
 
-// ==================== ЕДИНСТВЕННОЕ ИЗМЕНЕНИЕ ====================
 const fetchBanners = async () => {
   try {
     const { apiFetch } = useApi()
@@ -421,7 +417,6 @@ const fetchBanners = async () => {
     }
   } catch (err) { console.error('fetchBanners error:', err) }
 }
-// ==============================================================
 
 const startRotation = () => {
   rotationTimer = setInterval(() => {
