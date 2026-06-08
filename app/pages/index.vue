@@ -164,7 +164,7 @@
                   <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{
                     news.title }}</h3>
                   <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">{{ stripHtml(news.excerpt || news.content)
-                  }}</p>
+                    }}</p>
                   <NuxtLink :to="getNewsUrl(news)"
                     class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
                     Читать полностью
@@ -322,7 +322,6 @@ useSeoMeta({
 
 const store = useContentStore()
 
-// Запросы только на сервере — клиент получает готовые данные
 if (import.meta.server) {
   await store.fetchNews()
   await store.fetchAnnouncements()
@@ -398,24 +397,24 @@ function onAnnouncementsScroll() {
 
 let rotationTimer: ReturnType<typeof setInterval> | null = null
 
-const fetchBanners = async () => {
-  try {
-    const { apiFetch } = useApi()
-    const banners = await apiFetch<any[]>('/banner')
-    const images: string[] = []
-    for (const item of banners) {
-      if (item.banner?.guid) images.push(item.banner.guid)
-      if (item.banner2?.guid) images.push(item.banner2.guid)
-      if (item.banner3?.guid) images.push(item.banner3.guid)
-      if (item.banner4?.guid) images.push(item.banner4.guid)
-      if (item.banner5?.guid) images.push(item.banner5.guid)
-    }
-    if (images.length > 0) {
-      bannerImages.value = images
-      bannersLoaded.value = true
-      currentBannerIndex.value = Math.floor(Math.random() * images.length)
-    }
-  } catch (err) { console.error('fetchBanners error:', err) }
+// Баннеры загружаются на сервере
+const { apiFetch } = useApi()
+const banners = await apiFetch<any[]>('/banner').catch(err => {
+  console.error('fetchBanners error:', err)
+  return []
+})
+const images: string[] = []
+for (const item of banners) {
+  if (item.banner?.guid) images.push(item.banner.guid)
+  if (item.banner2?.guid) images.push(item.banner2.guid)
+  if (item.banner3?.guid) images.push(item.banner3.guid)
+  if (item.banner4?.guid) images.push(item.banner4.guid)
+  if (item.banner5?.guid) images.push(item.banner5.guid)
+}
+if (images.length > 0) {
+  bannerImages.value = images
+  bannersLoaded.value = true
+  currentBannerIndex.value = Math.floor(Math.random() * images.length)
 }
 
 const startRotation = () => {
@@ -426,7 +425,9 @@ const startRotation = () => {
   }, 60000)
 }
 
-onMounted(() => { fetchBanners().then(() => { startRotation() }) })
+onMounted(() => {
+  startRotation()
+})
 onUnmounted(() => { if (rotationTimer) clearInterval(rotationTimer) })
 
 const latestNews = computed(() => {
