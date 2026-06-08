@@ -2,9 +2,10 @@
   <div class="w-full">
     <section
       class="relative flex justify-center items-center min-h-[600px] bg-gradient-to-br from-primary to-primary/80 overflow-hidden">
-      <img v-if="activeBanner" :src="activeBanner" alt="" @load="onBannerLoad"
+      <img v-if="activeBanner" :src="activeBanner" alt=""
         class="absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-out"
-        :class="bannerImgClass" />
+        :class="bannerLoaded ? 'blur-0' : 'blur-xl'"
+        @load="onBannerLoad" />
       <div
         class="absolute inset-0 bg-gradient-to-br from-primary/80 to-primary/60 transition-opacity duration-1000 ease-out"
         :class="{ 'opacity-0': bannerLoaded, 'opacity-100': !bannerLoaded }"></div>
@@ -88,8 +89,7 @@
                 <div v-if="item.liturgical" class="liturgical-day schedule-text" v-html="item.liturgical"></div>
                 <hr v-if="item.liturgical && item.services" />
                 <div v-if="item.services" class="services-time schedule-text" v-html="item.services"></div>
-                <div v-if="!item.liturgical && !item.services" class="text-muted-foreground text-sm">Нет информации
-                </div>
+                <div v-if="!item.liturgical && !item.services" class="text-muted-foreground text-sm">Нет информации</div>
               </Card>
             </div>
           </div>
@@ -128,8 +128,7 @@
             <div class="flex items-center gap-2 mb-3 text-muted-foreground text-sm">
               <Calendar class="w-4 h-4" /><span>{{ formatDate(news.date) }}</span>
             </div>
-            <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{ news.title }}
-            </h3>
+            <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{ news.title }}</h3>
             <p class="flex-1 mb-4 text-muted-foreground line-clamp-5">{{ stripHtml(news.excerpt || news.content) }}</p>
             <NuxtLink :to="getNewsUrl(news)"
               class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
@@ -161,10 +160,8 @@
                   <div class="flex items-center gap-2 mb-3 text-muted-foreground text-sm">
                     <Calendar class="w-4 h-4" /><span>{{ formatDate(news.date) }}</span>
                   </div>
-                  <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{
-                    news.title }}</h3>
-                  <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">{{ stripHtml(news.excerpt || news.content)
-                    }}</p>
+                  <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{ news.title }}</h3>
+                  <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">{{ stripHtml(news.excerpt || news.content) }}</p>
                   <NuxtLink :to="getNewsUrl(news)"
                     class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
                     Читать полностью
@@ -207,8 +204,7 @@
                 class="text-gray-400 text-sm">Нет изображения</span></div>
           </div>
           <div class="flex flex-col flex-1 p-6">
-            <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-5 transition-colors">{{
-              announcement.title }}</h3>
+            <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-5 transition-colors">{{ announcement.title }}</h3>
             <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">{{ stripHtml(announcement.content) }}</p>
             <NuxtLink :to="getAnnouncementUrl(announcement)"
               class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
@@ -239,8 +235,7 @@
                       class="text-gray-400 text-sm">Нет изображения</span></div>
                 </div>
                 <div class="flex flex-col flex-1 p-6">
-                  <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{
-                    announcement.title }}</h3>
+                  <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{ announcement.title }}</h3>
                   <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">{{ stripHtml(announcement.content) }}</p>
                   <NuxtLink :to="getAnnouncementUrl(announcement)"
                     class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
@@ -344,8 +339,6 @@ const activeBanner = computed(() => {
   if (!bannersLoaded.value || bannerImages.value.length === 0) return ''
   return bannerImages.value[currentBannerIndex.value] || bannerImages.value[0] || ''
 })
-
-const bannerImgClass = computed(() => bannerLoaded.value ? 'blur-0' : 'blur-xl')
 
 function onBannerLoad() { bannerLoaded.value = true }
 watch(currentBannerIndex, () => { bannerLoaded.value = false })
