@@ -2,12 +2,6 @@ export const useApi = () => {
   const config = useRuntimeConfig()
   const baseURL = import.meta.server ? config.wpApiInternal : config.public.wpApi
 
-  const fixImageUrl = (url: string | null): string | null => {
-    if (!url) return url
-    // Заменяем admin.kirmefhram.ru на kirmefhram.ru для картинок
-    return url.replace('admin.kirmefhram.ru', 'kirmefhram.ru')
-  }
-
   const apiFetch = async <T = any>(
     endpoint: string,
     options: {
@@ -29,5 +23,5 @@ export const useApi = () => {
     }
   }
 
-  return { apiFetch, baseURL, fixImageUrl }
-}
+  return { apiFetch, baseURL }
+} 
