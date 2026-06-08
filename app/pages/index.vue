@@ -31,7 +31,6 @@
           </NuxtLink>
         </div>
 
-        <!-- Мобильные кнопки на баннере -->
         <div class="flex md:hidden sm:flex-row flex-col justify-center gap-3 mt-5 w-full max-w-xs">
           <NuxtLink to="/rb" class="w-full">
             <Button class="bg-white hover:bg-white/90 px-6 py-3 text-primary text-base w-full">Расписание
@@ -46,10 +45,9 @@
       </div>
     </section>
 
-    <!-- Расписание (десктоп и мобильный слайдер) -->
+    <!-- Расписание -->
     <section class="mx-auto px-4 lg:px-8 py-16 container">
       <h2 class="mb-8 text-green-700 text-4xl text-center">Расписание богослужений</h2>
-      <!-- Десктоп -->
       <div v-if="upcomingSchedule.length" class="hidden md:grid gap-6 grid-cols-3 mb-8">
         <Card v-for="(item, index) in upcomingSchedule" :key="index"
           class="transition-shadow hover:shadow-lg p-6 border-2 hover:border-accent cursor-pointer">
@@ -67,7 +65,6 @@
           <div v-if="!item.liturgical && !item.services" class="text-muted-foreground text-sm">Нет информации</div>
         </Card>
       </div>
-      <!-- Мобильный слайдер -->
       <div v-if="upcomingSchedule.length" class="md:hidden relative">
         <div class="flex items-center">
           <button @click="scrollSchedule(-1)" :disabled="scheduleSlideIndex <= 0"
@@ -404,12 +401,11 @@ function onAnnouncementsScroll() {
 
 let rotationTimer: ReturnType<typeof setInterval> | null = null
 
+// ==================== ЕДИНСТВЕННОЕ ИЗМЕНЕНИЕ ====================
 const fetchBanners = async () => {
   try {
-    const config = useRuntimeConfig()
-    const wpBase = config.public.wpApi
-    const res = await fetch(`${wpBase}/wp-json/wp/v2/banner`)
-    const banners = await res.json()
+    const { apiFetch } = useApi()
+    const banners = await apiFetch<any[]>('/banner')
     const images: string[] = []
     for (const item of banners) {
       if (item.banner?.guid) images.push(item.banner.guid)
@@ -425,6 +421,7 @@ const fetchBanners = async () => {
     }
   } catch (err) { console.error('fetchBanners error:', err) }
 }
+// ==============================================================
 
 const startRotation = () => {
   rotationTimer = setInterval(() => {
@@ -456,18 +453,13 @@ const upcomingSchedule = computed(() => {
   })
 })
 
-// Функции для формирования URL с использованием slug
 const getNewsUrl = (news: any): string => {
-  if (news.slug && news.slug.trim() !== '') {
-    return `/news/${news.slug}`
-  }
+  if (news.slug && news.slug.trim() !== '') return `/news/${news.slug}`
   return `/news/${news.id}`
 }
 
 const getAnnouncementUrl = (announcement: any): string => {
-  if (announcement.slug && announcement.slug.trim() !== '') {
-    return `/announcements/${announcement.slug}`
-  }
+  if (announcement.slug && announcement.slug.trim() !== '') return `/announcements/${announcement.slug}`
   return `/announcements/${announcement.id}`
 }
 

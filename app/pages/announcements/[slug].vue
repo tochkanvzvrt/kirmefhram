@@ -49,13 +49,10 @@
 
 <script setup lang="ts">
 import { ArrowLeft } from 'lucide-vue-next'
-import { useRuntimeConfig } from '#app'
 import { decode } from 'html-entities'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 const route = useRoute()
-const config = useRuntimeConfig()
-const wpBase = config.public.wpApi
 const announcementSlug = route.params.slug
 
 const stripHtml = (html: string): string => {
@@ -63,9 +60,11 @@ const stripHtml = (html: string): string => {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-// Запрос по slug — API возвращает массив
+// ==================== ИСПРАВЛЕНО ====================
+const { baseURL } = useApi()
+
 const { data: articleData, error } = await useFetch(
-  `${wpBase}/wp-json/wp/v2/announcement`,
+  `${baseURL}/wp-json/wp/v2/announcement`,
   {
     params: {
       slug: announcementSlug,
@@ -74,14 +73,13 @@ const { data: articleData, error } = await useFetch(
     }
   }
 )
+// ===================================================
 
-// Проверяем: массив не пустой
 if (error.value || !articleData.value || !Array.isArray(articleData.value) || articleData.value.length === 0) {
   throw createError({ statusCode: 404, message: 'Анонс не найден' })
 }
 
 const article = computed(() => {
-  // Берём первый (и единственный) элемент массива
   const item = articleData.value[0] as any
   const rawTitle = item.title?.rendered || 'Без названия'
   return {
@@ -101,8 +99,7 @@ const article = computed(() => {
 
 const formatDate = (dateStr: string) => {
   if (!dateStr) return ''
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('ru-RU', {
+  return new Date(dateStr).toLocaleDateString('ru-RU', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -114,7 +111,6 @@ const fullUrl = computed(() => {
   return `${baseUrl}/announcements/${announcementSlug}`
 })
 
-// Лайтбокс
 const lightboxImage = ref<string | null>(null)
 
 function openLightbox(src: string) {
@@ -314,7 +310,6 @@ useHead({
   font-weight: 600;
 }
 
-/* Ссылки */
 .wp-content :deep(a) {
   color: rgb(138, 45, 30);
   text-decoration: underline;
@@ -343,24 +338,10 @@ useHead({
   text-align: left;
 }
 
-/* Все варианты выравнивания текста из админки */
-.wp-content :deep(.has-text-align-left) {
-  text-align: left;
-}
-
-.wp-content :deep(.has-text-align-center) {
-  text-align: center;
-}
-
-.wp-content :deep(.has-text-align-right) {
-  text-align: right;
-}
-
 .wp-content :deep(.has-text-align-justify) {
   text-align: justify;
 }
 
-/* Выравнивание для заголовков */
 .wp-content :deep(h1.has-text-align-left),
 .wp-content :deep(h2.has-text-align-left),
 .wp-content :deep(h3.has-text-align-left),
@@ -388,7 +369,6 @@ useHead({
   text-align: right;
 }
 
-/* Цвета текста */
 .wp-content :deep(.has-primary-color) {
   color: var(--wp--preset--color--primary, #1a3a5c);
 }
@@ -401,7 +381,6 @@ useHead({
   color: inherit;
 }
 
-/* Размеры текста */
 .wp-content :deep(.has-small-font-size) {
   font-size: 0.875rem;
 }
@@ -418,7 +397,6 @@ useHead({
   font-size: 2rem;
 }
 
-/* Кнопки из Гутенберга */
 .wp-content :deep(.wp-block-button__link) {
   display: inline-block;
   padding: 0.75em 1.5em;
@@ -433,7 +411,6 @@ useHead({
   background-color: var(--primary-dark, #152d4a);
 }
 
-/* Цитаты */
 .wp-content :deep(.wp-block-quote) {
   border-left: 4px solid var(--primary, #1a3a5c);
   padding-left: 1em;
@@ -442,7 +419,6 @@ useHead({
   color: #4a5568;
 }
 
-/* Разделители */
 .wp-content :deep(.wp-block-separator) {
   border: none;
   height: 2px;
@@ -450,12 +426,11 @@ useHead({
   margin: 2em 0;
 }
 
-/* Списки с галочками и другие */
 .wp-content :deep(.wp-block-list) {
   list-style-position: inside;
 }
 
-/* ======= СТАНДАРТНАЯ ГАЛЕРЕЯ WORDPRESS (сетка) ======= */
+/* Галерея */
 .wp-content :deep(.wp-block-gallery) {
   display: grid !important;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)) !important;
@@ -487,10 +462,8 @@ useHead({
   transform: scale(1.02);
 }
 
-/* ======= АДАПТИВ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ ======= */
 @media (max-width: 768px) {
 
-  /* Отмена обтекания для выравненных элементов */
   .wp-content :deep(.alignleft),
   .wp-content :deep(.alignright),
   .wp-content :deep(figure.alignleft),
@@ -500,7 +473,6 @@ useHead({
     margin: 1em auto;
   }
 
-  /* Адаптив для iframe (видео) — только на мобилках */
   .wp-content :deep(iframe) {
     width: 100% !important;
     max-width: 100% !important;
@@ -511,7 +483,6 @@ useHead({
     box-sizing: border-box;
   }
 
-  /* Галерея: 2 колонки на планшетах/телефонах */
   .wp-content :deep(.wp-block-gallery) {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
     gap: 12px !important;
@@ -519,8 +490,6 @@ useHead({
 }
 
 @media (max-width: 480px) {
-
-  /* На очень узких экранах — 1 колонка */
   .wp-content :deep(.wp-block-gallery) {
     grid-template-columns: 1fr !important;
   }

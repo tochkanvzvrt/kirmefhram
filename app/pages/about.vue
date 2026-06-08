@@ -29,27 +29,23 @@
 
 <script setup lang="ts">
 import { Church } from 'lucide-vue-next'
-import { useRuntimeConfig } from '#app'
 
-const config = useRuntimeConfig()
-const wpBase = config.public.wpApi
+// ==================== ИСПРАВЛЕНО: используем useApi ====================
+const { baseURL } = useApi()
 
-// Загружаем данные из кастомного типа записи 'about' (первый пост)
-const { data, pending, error } = await useFetch<Array<any>>(`${wpBase}/wp-json/wp/v2/about`, {
+const { data, pending, error } = await useFetch<Array<any>>(`${baseURL}/wp-json/wp/v2/about`, {
   key: 'about-history',
   server: true,
   params: { per_page: 1 }
 })
+// =====================================================================
 
 const aboutItem = computed(() => data.value?.[0] || null)
 
-// Заголовок страницы (берём из title.rendered)
 const pageTitle = computed(() => aboutItem.value?.title?.rendered || 'О храме')
 
-// Контент – поле historical_background (содержит готовый HTML)
 const historicalContent = computed(() => aboutItem.value?.historical_background || '<p>Нет данных</p>')
 
-// SEO
 useHead({
   title: `${pageTitle.value} | Кирилло-Мефодиевский храм`,
   meta: [
@@ -59,7 +55,6 @@ useHead({
 </script>
 
 <style scoped>
-/* Стили для сохранения форматирования из WordPress */
 .historical-content {
   font-size: 1.125rem;
   line-height: 1.7;

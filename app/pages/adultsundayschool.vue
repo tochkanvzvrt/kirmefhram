@@ -173,10 +173,6 @@
                 <h3 class="mb-3 font-serif group-hover:text-primary text-xl transition-colors line-clamp-2">
                   {{ item.title }}
                 </h3>
-                <!-- <div class="flex items-center gap-2 mt-auto text-muted-foreground text-sm">
-                  <ImageIcon class="w-4 h-4" />
-                  <span>{{ item.photosCount }} фото</span>
-                </div> -->
               </div>
             </Card>
           </NuxtLink>
@@ -210,29 +206,21 @@ const sundaySchoolText = ref<string>('')
 const enrollmentText = ref<string>('')
 
 const ADULT_SUNDAY_SCHOOL_CATEGORY_ID = 9
+
 const formatText = (text: string): string => {
   if (!text) return ''
-  return text
-    .replace(/\r\n/g, '<br>')
-    .replace(/\n/g, '<br>')
-    .replace(/\t/g, '&nbsp;&nbsp;')
+  return text.replace(/\r\n/g, '<br>').replace(/\n/g, '<br>').replace(/\t/g, '&nbsp;&nbsp;')
 }
 
+// ==================== ИСПРАВЛЕНО: используем useApi ====================
 const fetchSundaySchool = async () => {
   try {
-    const res = await fetch('https://admin.kirmefhram.ru/wp-json/wp/v2/adultsundayschool')
-    const data = await res.json()
-
+    const { apiFetch } = useApi()
+    const data = await apiFetch<any[]>('/adultsundayschool')
     if (Array.isArray(data) && data.length > 0) {
       const item = data[0]
-
-      if (item.description) {
-        sundaySchoolText.value = formatText(item.description)
-      }
-
-      if (item.entry) {
-        enrollmentText.value = formatText(item.entry)
-      }
+      if (item.description) sundaySchoolText.value = formatText(item.description)
+      if (item.entry) enrollmentText.value = formatText(item.entry)
     }
   } catch (err) {
     console.error('fetchSundaySchool error:', err)
@@ -243,25 +231,15 @@ const fetchSundaySchool = async () => {
   }
 }
 
-// Загружаем 4 последние новости по взрослой воскресной школе напрямую из API
 const adultNews = ref<any[]>([])
 async function fetchAdultNews() {
   loadingAdultNews.value = true
   try {
-    const config = useRuntimeConfig()
-    const wpBase = config.public.wpApi
-    const data = await $fetch(`${wpBase}/wp-json/wp/v2/new`, {
-      params: {
-        _embed: true,
-        per_page: 4,
-        categories: ADULT_SUNDAY_SCHOOL_CATEGORY_ID,
-        orderby: 'date',
-        order: 'desc'
-      }
+    const { apiFetch } = useApi()
+    const data = await apiFetch<any[]>('/new', {
+      params: { _embed: true, per_page: 4, categories: ADULT_SUNDAY_SCHOOL_CATEGORY_ID, orderby: 'date', order: 'desc' }
     })
-    if (Array.isArray(data)) {
-      adultNews.value = data
-    }
+    if (Array.isArray(data)) adultNews.value = data
   } catch (err) {
     console.error('fetchAdultNews error:', err)
     adultNews.value = []
@@ -270,25 +248,15 @@ async function fetchAdultNews() {
   }
 }
 
-// Загружаем 4 последних анонса по взрослой воскресной школе напрямую из API
 const adultAnnouncements = ref<any[]>([])
 async function fetchAdultAnnouncements() {
   loadingAdultAnnouncements.value = true
   try {
-    const config = useRuntimeConfig()
-    const wpBase = config.public.wpApi
-    const data = await $fetch(`${wpBase}/wp-json/wp/v2/announcement`, {
-      params: {
-        _embed: true,
-        per_page: 4,
-        categories: ADULT_SUNDAY_SCHOOL_CATEGORY_ID,
-        orderby: 'date',
-        order: 'desc'
-      }
+    const { apiFetch } = useApi()
+    const data = await apiFetch<any[]>('/announcement', {
+      params: { _embed: true, per_page: 4, categories: ADULT_SUNDAY_SCHOOL_CATEGORY_ID, orderby: 'date', order: 'desc' }
     })
-    if (Array.isArray(data)) {
-      adultAnnouncements.value = data
-    }
+    if (Array.isArray(data)) adultAnnouncements.value = data
   } catch (err) {
     console.error('fetchAdultAnnouncements error:', err)
     adultAnnouncements.value = []
@@ -297,24 +265,15 @@ async function fetchAdultAnnouncements() {
   }
 }
 
-// Загружаем 4 последние галереи по взрослой воскресной школе напрямую из API
 const adultGalleries = ref<any[]>([])
 async function fetchAdultGalleries() {
   loadingAdultGalleries.value = true
   try {
-    const config = useRuntimeConfig()
-    const wpBase = config.public.wpApi
-    const data = await $fetch(`${wpBase}/wp-json/wp/v2/photogallery`, {
-      params: {
-        per_page: 4,
-        categories: ADULT_SUNDAY_SCHOOL_CATEGORY_ID,
-        orderby: 'date',
-        order: 'desc'
-      }
+    const { apiFetch } = useApi()
+    const data = await apiFetch<any[]>('/photogallery', {
+      params: { per_page: 4, categories: ADULT_SUNDAY_SCHOOL_CATEGORY_ID, orderby: 'date', order: 'desc' }
     })
-    if (Array.isArray(data)) {
-      adultGalleries.value = data
-    }
+    if (Array.isArray(data)) adultGalleries.value = data
   } catch (err) {
     console.error('fetchAdultGalleries error:', err)
     adultGalleries.value = []
@@ -322,6 +281,7 @@ async function fetchAdultGalleries() {
     loadingAdultGalleries.value = false
   }
 }
+// =====================================================================
 
 onMounted(async () => {
   await Promise.all([
@@ -332,29 +292,21 @@ onMounted(async () => {
   ])
 })
 
-// Функции для формирования URL с использованием slug
 const getNewsUrl = (item: any): string => {
-  if (item.slug && item.slug.trim() !== '') {
-    return `/news/${item.slug}`
-  }
+  if (item.slug && item.slug.trim() !== '') return `/news/${item.slug}`
   return `/news/${item.id}`
 }
 
 const getAnnouncementUrl = (item: any): string => {
-  if (item.slug && item.slug.trim() !== '') {
-    return `/announcements/${item.slug}`
-  }
+  if (item.slug && item.slug.trim() !== '') return `/announcements/${item.slug}`
   return `/announcements/${item.id}`
 }
 
 const getGalleryUrl = (item: any): string => {
-  if (item.slug && item.slug.trim() !== '' && item.slug !== String(item.id)) {
-    return `/gallery/${item.slug}`
-  }
+  if (item.slug && item.slug.trim() !== '' && item.slug !== String(item.id)) return `/gallery/${item.slug}`
   return `/gallery/${item.id}`
 }
 
-// Преобразуем сырые данные новостей
 const latestAdultSundaySchoolNews = computed(() => {
   return adultNews.value.map((item: any) => ({
     id: item.id,
@@ -365,14 +317,11 @@ const latestAdultSundaySchoolNews = computed(() => {
     date: item.date || '',
     image: item._embedded?.['wp:featuredmedia']?.[0]?.source_url || null,
     categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
-      id: term.id,
-      name: term.name,
-      slug: term.slug,
+      id: term.id, name: term.name, slug: term.slug,
     })) || [],
   }))
 })
 
-// Преобразуем сырые данные анонсов
 const latestAdultSundaySchoolAnnouncements = computed(() => {
   return adultAnnouncements.value.map((item: any) => ({
     id: item.id,
@@ -382,42 +331,29 @@ const latestAdultSundaySchoolAnnouncements = computed(() => {
     date: item.date || '',
     image: item._embedded?.['wp:featuredmedia']?.[0]?.source_url || null,
     categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
-      id: term.id,
-      name: term.name,
-      slug: term.slug,
+      id: term.id, name: term.name, slug: term.slug,
     })) || [],
   }))
 })
 
-// Преобразуем сырые данные галерей
 const latestAdultSundaySchoolGalleries = computed(() => {
   return adultGalleries.value.map((item: any) => {
     let coverImage = item.photo?.guid || null
-    if (coverImage) {
-      coverImage = coverImage.replace(/\\\\/g, '\\')
-    }
-
-    const photosCount = Array.isArray(item.gallery_photos) ? item.gallery_photos.length : 0
-
+    if (coverImage) coverImage = coverImage.replace(/\\\\/g, '\\')
     return {
       id: item.id,
       slug: item.slug || '',
       title: decode(item.title?.rendered || item.albumname || 'Без названия'),
       date: item.date || '',
       image: coverImage,
-      photosCount,
+      photosCount: Array.isArray(item.gallery_photos) ? item.gallery_photos.length : 0,
     }
   })
 })
 
 const formatDate = (dateStr: string): string => {
   if (!dateStr) return ''
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  return new Date(dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 const stripHtml = (html: string): string => {

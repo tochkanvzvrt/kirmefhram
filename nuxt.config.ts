@@ -14,8 +14,12 @@ export default defineNuxtConfig({
     }
   },
   runtimeConfig: {
+    // Приватный — только на сервере (SSR)
+    wpApiInternal: process.env.NUXT_WP_API_INTERNAL || 'https://admin.kirmefhram.ru',
+
     public: {
-      wpApi: process.env.WP_API_URL || 'https://admin.kirmefhram.ru'
+      // Публичный — доступен и на клиенте
+      wpApi: process.env.NUXT_PUBLIC_WP_API || 'https://admin.kirmefhram.ru'
     }
   },
   nitro: {

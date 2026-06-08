@@ -63,10 +63,6 @@
                                     {{ cat.name }}
                                 </Badge>
                             </div>
-                            <!-- <div class="flex items-center gap-2 mt-auto text-muted-foreground text-sm">
-                                <ImageIcon class="w-4 h-4" />
-                                <span>{{ gallery.photosCount }} фото</span>
-                            </div> -->
                         </div>
                     </Card>
                 </NuxtLink>
@@ -99,8 +95,10 @@ import Badge from '~/components/ui/Badge.vue'
 import { decode } from 'html-entities'
 
 const route = useRoute()
-const config = useRuntimeConfig()
-const wpBase = config.public.wpApi
+
+// ==================== ИСПРАВЛЕНО ====================
+const { apiFetch, baseURL } = useApi()
+// ===================================================
 
 const loading = ref(false)
 const error = ref(false)
@@ -110,27 +108,22 @@ const totalPages = ref(0)
 const totalItems = ref(0)
 const perPage = 21
 
-// Категории
 const allCategoriesList = ref<{ id: number; name: string; slug: string }[]>([])
 
-// Определяем категорию из URL (?category=4)
 const categoryFromUrl = route.query.category
 const initialCategory = categoryFromUrl && !isNaN(Number(categoryFromUrl)) ? Number(categoryFromUrl) : null
 
 const activeCategoryId = ref<number | null>(initialCategory)
 
-// Загружаем все категории
 async function fetchAllCategories() {
     if (allCategoriesList.value.length > 0) return
     try {
-        const data = await $fetch(`${wpBase}/wp-json/wp/v2/categories`, {
+        const data = await apiFetch<any[]>('/categories', {
             params: { per_page: 100, orderby: 'name', order: 'asc' }
         })
         if (Array.isArray(data)) {
             allCategoriesList.value = data.map((cat: any) => ({
-                id: cat.id,
-                name: cat.name,
-                slug: cat.slug,
+                id: cat.id, name: cat.name, slug: cat.slug,
             }))
         }
     } catch (err) {
@@ -144,7 +137,6 @@ const categoriesList = computed(() => [
     ...allCategoriesList.value.filter(cat => cat.id !== 1)
 ])
 
-// Функция для формирования URL с использованием slug, с fallback на id
 const getGalleryUrl = (gallery: any): string => {
     if (gallery.slug && gallery.slug.trim() !== '' && gallery.slug !== String(gallery.id)) {
         return `/gallery/${gallery.slug}`
@@ -152,33 +144,21 @@ const getGalleryUrl = (gallery: any): string => {
     return `/gallery/${gallery.id}`
 }
 
-// Загрузка страницы галерей
 async function fetchGalleriesPage(page: number, categoryId?: number | null) {
     loading.value = true
     error.value = false
     try {
         const params: any = {
-            _embed: true,
-            per_page: perPage,
-            page: page,
-            orderby: 'date',
-            order: 'desc'
+            _embed: true, per_page: perPage, page: page, orderby: 'date', order: 'desc'
         }
-        if (categoryId) {
-            params.categories = categoryId
-        }
+        if (categoryId) params.categories = categoryId
 
-        const response = await $fetch.raw(`${wpBase}/wp-json/wp/v2/photogallery`, { params })
+        const response = await $fetch.raw(`${baseURL}/wp-json/wp/v2/photogallery`, { params })
         const data = response._data
         if (Array.isArray(data)) {
             galleries.value = data.map((item: any) => {
                 let coverImage = item.photo?.guid || null
-                if (coverImage) {
-                    coverImage = coverImage.replace(/\\\\/g, '\\')
-                }
-
-                const photosCount = Array.isArray(item.gallery_photos) ? item.gallery_photos.length : 0
-
+                if (coverImage) coverImage = coverImage.replace(/\\\\/g, '\\')
                 return {
                     id: item.id,
                     slug: item.slug || '',
@@ -186,11 +166,9 @@ async function fetchGalleriesPage(page: number, categoryId?: number | null) {
                     date: item.date || '',
                     image: coverImage,
                     albumLink: item.albumlink || '',
-                    photosCount,
+                    photosCount: Array.isArray(item.gallery_photos) ? item.gallery_photos.length : 0,
                     categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
-                        id: term.id,
-                        name: term.name,
-                        slug: term.slug,
+                        id: term.id, name: term.name, slug: term.slug,
                     })) || [],
                 }
             })
@@ -208,7 +186,6 @@ async function fetchGalleriesPage(page: number, categoryId?: number | null) {
     }
 }
 
-// Загружаем категории и первую страницу
 await fetchAllCategories()
 await fetchGalleriesPage(1, activeCategoryId.value)
 
@@ -227,8 +204,7 @@ async function goToPage(page: number) {
 
 const formatDate = (dateStr: string) => {
     if (!dateStr) return ''
-    const date = new Date(dateStr)
-    return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+    return new Date(dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 const visiblePages = computed(() => {

@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia'
-import { useRuntimeConfig } from '#app'
 
 interface Announcement {
   id: number
@@ -45,21 +44,100 @@ interface ScheduleDay {
   services: string
 }
 
+// ==================== МАППЕРЫ ДАННЫХ ====================
+
+const mapNewsItem = (item: any): NewsItem => ({
+  id: item.id,
+  title: item.title?.rendered || 'Без названия',
+  content: item.content?.rendered || '',
+  excerpt: item.excerpt?.rendered || '',
+  date: item.date || '',
+  link: item.link || '',
+  slug: item.slug || '',
+  categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
+    id: term.id,
+    name: term.name,
+    slug: term.slug,
+  })) || [],
+  image: item._embedded?.['wp:featuredmedia']?.[0]?.source_url || null,
+})
+
+const mapAnnouncementItem = (item: any): Announcement => {
+  let categories: { id: number; name: string; slug: string }[] = []
+  const terms = item._embedded?.['wp:term']
+  if (terms && Array.isArray(terms) && terms[0] && Array.isArray(terms[0])) {
+    categories = terms[0].map((term: any) => ({
+      id: term.id,
+      name: term.name,
+      slug: term.slug,
+    }))
+  }
+  let image: string | null = null
+  const media = item._embedded?.['wp:featuredmedia']
+  if (media && Array.isArray(media) && media[0]?.source_url) {
+    image = media[0].source_url
+  }
+  return {
+    id: item.id,
+    title: item.title?.rendered || 'Без названия',
+    content: item.content?.rendered || '',
+    excerpt: item.excerpt?.rendered || '',
+    date: item.date || '',
+    link: item.link || '',
+    slug: item.slug || '',
+    categories,
+    image,
+  }
+}
+
+const mapPhotogalleryItem = (item: any): PhotoGallery => {
+  let categories: { id: number; name: string; slug: string }[] = []
+  const terms = item._embedded?.['wp:term']
+  if (terms && Array.isArray(terms) && terms[0] && Array.isArray(terms[0])) {
+    categories = terms[0].map((term: any) => ({
+      id: term.id,
+      name: term.name,
+      slug: term.slug,
+    }))
+  }
+  let image: string | null = null
+  const media = item._embedded?.['wp:featuredmedia']
+  if (media && Array.isArray(media) && media[0]?.source_url) {
+    image = media[0].source_url
+  }
+  return {
+    id: item.id,
+    title: item.title?.rendered || 'Без названия',
+    content: item.content?.rendered || '',
+    excerpt: item.excerpt?.rendered || '',
+    date: item.date || '',
+    link: item.link || '',
+    slug: item.slug || '',
+    categories,
+    image,
+  }
+}
+
+const mapCategoryItem = (cat: any) => ({
+  id: cat.id,
+  name: cat.name,
+  slug: cat.slug,
+})
+
+// ==================== STORE ====================
+
 export const useContentStore = defineStore('content', {
   state: () => ({
-    // Для пагинации (страницы /news, /announcements, /photogallery)
     announcements: [] as Announcement[],
     news: [] as NewsItem[],
     photogalleries: [] as PhotoGallery[],
 
-    // Для ленты (главная страница)
     feedNews: [] as NewsItem[],
     feedAnnouncements: [] as Announcement[],
     feedPhotogalleries: [] as PhotoGallery[],
 
     schedule: [] as ScheduleDay[],
 
-    // Пагинация
     totalNewsPages: 0,
     currentNewsPage: 1,
     newsPerPage: 20,
@@ -75,7 +153,6 @@ export const useContentStore = defineStore('content', {
     photogalleriesPerPage: 20,
     totalPhotogalleryItems: 0,
 
-    // Все категории из WordPress
     allNewsCategoriesList: [] as { id: number; name: string; slug: string }[],
     allAnnouncementCategoriesList: [] as { id: number; name: string; slug: string }[],
     allPhotogalleryCategoriesList: [] as { id: number; name: string; slug: string }[],
@@ -86,18 +163,13 @@ export const useContentStore = defineStore('content', {
 
     async fetchAllNewsCategories() {
       if (this.allNewsCategoriesList.length > 0) return
-      const config = useRuntimeConfig()
-      const wpBase = config.public.wpApi
+      const { apiFetch } = useApi()
       try {
-        const data = await $fetch(`${wpBase}/wp-json/wp/v2/categories`, {
+        const data = await apiFetch<any[]>('/categories', {
           params: { per_page: 100, orderby: 'name', order: 'asc' }
         })
         if (Array.isArray(data)) {
-          this.allNewsCategoriesList = data.map((cat: any) => ({
-            id: cat.id,
-            name: cat.name,
-            slug: cat.slug,
-          }))
+          this.allNewsCategoriesList = data.map(mapCategoryItem)
         }
       } catch (err) {
         console.error('Ошибка загрузки всех категорий новостей:', err)
@@ -107,18 +179,13 @@ export const useContentStore = defineStore('content', {
 
     async fetchAllAnnouncementCategories() {
       if (this.allAnnouncementCategoriesList.length > 0) return
-      const config = useRuntimeConfig()
-      const wpBase = config.public.wpApi
+      const { apiFetch } = useApi()
       try {
-        const data = await $fetch(`${wpBase}/wp-json/wp/v2/categories`, {
+        const data = await apiFetch<any[]>('/categories', {
           params: { per_page: 100, orderby: 'name', order: 'asc' }
         })
         if (Array.isArray(data)) {
-          this.allAnnouncementCategoriesList = data.map((cat: any) => ({
-            id: cat.id,
-            name: cat.name,
-            slug: cat.slug,
-          }))
+          this.allAnnouncementCategoriesList = data.map(mapCategoryItem)
         }
       } catch (err) {
         console.error('Ошибка загрузки всех категорий анонсов:', err)
@@ -128,18 +195,13 @@ export const useContentStore = defineStore('content', {
 
     async fetchAllPhotogalleryCategories() {
       if (this.allPhotogalleryCategoriesList.length > 0) return
-      const config = useRuntimeConfig()
-      const wpBase = config.public.wpApi
+      const { apiFetch } = useApi()
       try {
-        const data = await $fetch(`${wpBase}/wp-json/wp/v2/categories`, {
+        const data = await apiFetch<any[]>('/categories', {
           params: { per_page: 100, orderby: 'name', order: 'asc' }
         })
         if (Array.isArray(data)) {
-          this.allPhotogalleryCategoriesList = data.map((cat: any) => ({
-            id: cat.id,
-            name: cat.name,
-            slug: cat.slug,
-          }))
+          this.allPhotogalleryCategoriesList = data.map(mapCategoryItem)
         }
       } catch (err) {
         console.error('Ошибка загрузки всех категорий фотогалерей:', err)
@@ -150,28 +212,13 @@ export const useContentStore = defineStore('content', {
     // ==================== ЛЕНТА (главная страница) ====================
 
     async fetchNews() {
-      const config = useRuntimeConfig()
-      const wpBase = config.public.wpApi
+      const { apiFetch } = useApi()
       try {
-        const data = await $fetch(`${wpBase}/wp-json/wp/v2/new`, {
+        const data = await apiFetch<any[]>('/new', {
           params: { _embed: true, per_page: 20 }
         })
         if (Array.isArray(data)) {
-          this.feedNews = data.map((item: any) => ({
-            id: item.id,
-            title: item.title?.rendered || 'Без названия',
-            content: item.content?.rendered || '',
-            excerpt: item.excerpt?.rendered || '',
-            date: item.date || '',
-            link: item.link || '',
-            slug: item.slug || '',
-            categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
-              id: term.id,
-              name: term.name,
-              slug: term.slug,
-            })) || [],
-            image: item._embedded?.['wp:featuredmedia']?.[0]?.source_url || null,
-          }))
+          this.feedNews = data.map(mapNewsItem)
         }
       } catch (err) {
         console.error('Ошибка загрузки новостей:', err)
@@ -180,40 +227,13 @@ export const useContentStore = defineStore('content', {
     },
 
     async fetchAnnouncements() {
-      const config = useRuntimeConfig()
-      const wpBase = config.public.wpApi
+      const { apiFetch } = useApi()
       try {
-        const data = await $fetch(`${wpBase}/wp-json/wp/v2/announcement`, {
+        const data = await apiFetch<any[]>('/announcement', {
           params: { per_page: 20, _embed: true }
         })
         if (Array.isArray(data)) {
-          this.feedAnnouncements = data.map((item: any) => {
-            let categories: { id: number; name: string; slug: string }[] = []
-            const terms = item._embedded?.['wp:term']
-            if (terms && Array.isArray(terms) && terms[0] && Array.isArray(terms[0])) {
-              categories = terms[0].map((term: any) => ({
-                id: term.id,
-                name: term.name,
-                slug: term.slug,
-              }))
-            }
-            let image: string | null = null
-            const media = item._embedded?.['wp:featuredmedia']
-            if (media && Array.isArray(media) && media[0]?.source_url) {
-              image = media[0].source_url
-            }
-            return {
-              id: item.id,
-              title: item.title?.rendered || 'Без названия',
-              content: item.content?.rendered || '',
-              excerpt: item.excerpt?.rendered || '',
-              date: item.date || '',
-              link: item.link || '',
-              slug: item.slug || '',
-              categories,
-              image,
-            }
-          })
+          this.feedAnnouncements = data.map(mapAnnouncementItem)
         }
       } catch (err) {
         console.error('Ошибка загрузки анонсов:', err)
@@ -222,40 +242,13 @@ export const useContentStore = defineStore('content', {
     },
 
     async fetchPhotogalleries() {
-      const config = useRuntimeConfig()
-      const wpBase = config.public.wpApi
+      const { apiFetch } = useApi()
       try {
-        const data = await $fetch(`${wpBase}/wp-json/wp/v2/photogallery`, {
+        const data = await apiFetch<any[]>('/photogallery', {
           params: { _embed: true, per_page: 20 }
         })
         if (Array.isArray(data)) {
-          this.feedPhotogalleries = data.map((item: any) => {
-            let categories: { id: number; name: string; slug: string }[] = []
-            const terms = item._embedded?.['wp:term']
-            if (terms && Array.isArray(terms) && terms[0] && Array.isArray(terms[0])) {
-              categories = terms[0].map((term: any) => ({
-                id: term.id,
-                name: term.name,
-                slug: term.slug,
-              }))
-            }
-            let image: string | null = null
-            const media = item._embedded?.['wp:featuredmedia']
-            if (media && Array.isArray(media) && media[0]?.source_url) {
-              image = media[0].source_url
-            }
-            return {
-              id: item.id,
-              title: item.title?.rendered || 'Без названия',
-              content: item.content?.rendered || '',
-              excerpt: item.excerpt?.rendered || '',
-              date: item.date || '',
-              link: item.link || '',
-              slug: item.slug || '',
-              categories,
-              image,
-            }
-          })
+          this.feedPhotogalleries = data.map(mapPhotogalleryItem)
         }
       } catch (err) {
         console.error('Ошибка загрузки фотогалерей:', err)
@@ -266,8 +259,7 @@ export const useContentStore = defineStore('content', {
     // ==================== ПАГИНАЦИЯ ====================
 
     async fetchNewsPage(page: number, perPage: number = 20, categoryId?: number) {
-      const config = useRuntimeConfig()
-      const wpBase = config.public.wpApi
+      const { baseURL } = useApi()
       const params: any = {
         _embed: true,
         per_page: perPage,
@@ -279,24 +271,10 @@ export const useContentStore = defineStore('content', {
         params.categories = categoryId
       }
       try {
-        const response = await $fetch.raw(`${wpBase}/wp-json/wp/v2/new`, { params })
+        const response = await $fetch.raw(`${baseURL}/wp-json/wp/v2/new`, { params })
         const data = response._data
         if (Array.isArray(data)) {
-          this.news = data.map((item: any) => ({
-            id: item.id,
-            title: item.title?.rendered || 'Без названия',
-            content: item.content?.rendered || '',
-            excerpt: item.excerpt?.rendered || '',
-            date: item.date || '',
-            link: item.link || '',
-            slug: item.slug || '',
-            categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
-              id: term.id,
-              name: term.name,
-              slug: term.slug,
-            })) || [],
-            image: item._embedded?.['wp:featuredmedia']?.[0]?.source_url || null,
-          }))
+          this.news = data.map(mapNewsItem)
         }
         const totalPages = response.headers?.get('x-wp-totalpages')
         if (totalPages) this.totalNewsPages = parseInt(totalPages)
@@ -310,8 +288,7 @@ export const useContentStore = defineStore('content', {
     },
 
     async fetchAnnouncementsPage(page: number, perPage: number = 20, categoryId?: number) {
-      const config = useRuntimeConfig()
-      const wpBase = config.public.wpApi
+      const { baseURL } = useApi()
       const params: any = {
         _embed: true,
         per_page: perPage,
@@ -323,36 +300,10 @@ export const useContentStore = defineStore('content', {
         params.categories = categoryId
       }
       try {
-        const response = await $fetch.raw(`${wpBase}/wp-json/wp/v2/announcement`, { params })
+        const response = await $fetch.raw(`${baseURL}/wp-json/wp/v2/announcement`, { params })
         const data = response._data
         if (Array.isArray(data)) {
-          this.announcements = data.map((item: any) => {
-            let categories: { id: number; name: string; slug: string }[] = []
-            const terms = item._embedded?.['wp:term']
-            if (terms && Array.isArray(terms) && terms[0] && Array.isArray(terms[0])) {
-              categories = terms[0].map((term: any) => ({
-                id: term.id,
-                name: term.name,
-                slug: term.slug,
-              }))
-            }
-            let image: string | null = null
-            const media = item._embedded?.['wp:featuredmedia']
-            if (media && Array.isArray(media) && media[0]?.source_url) {
-              image = media[0].source_url
-            }
-            return {
-              id: item.id,
-              title: item.title?.rendered || 'Без названия',
-              content: item.content?.rendered || '',
-              excerpt: item.excerpt?.rendered || '',
-              date: item.date || '',
-              link: item.link || '',
-              slug: item.slug || '',
-              categories,
-              image,
-            }
-          })
+          this.announcements = data.map(mapAnnouncementItem)
         }
         const totalPages = response.headers?.get('x-wp-totalpages')
         if (totalPages) this.totalAnnouncementPages = parseInt(totalPages)
@@ -366,8 +317,7 @@ export const useContentStore = defineStore('content', {
     },
 
     async fetchPhotogalleriesPage(page: number, perPage: number = 20, categoryId?: number) {
-      const config = useRuntimeConfig()
-      const wpBase = config.public.wpApi
+      const { baseURL } = useApi()
       const params: any = {
         _embed: true,
         per_page: perPage,
@@ -379,36 +329,10 @@ export const useContentStore = defineStore('content', {
         params.categories = categoryId
       }
       try {
-        const response = await $fetch.raw(`${wpBase}/wp-json/wp/v2/photogallery`, { params })
+        const response = await $fetch.raw(`${baseURL}/wp-json/wp/v2/photogallery`, { params })
         const data = response._data
         if (Array.isArray(data)) {
-          this.photogalleries = data.map((item: any) => {
-            let categories: { id: number; name: string; slug: string }[] = []
-            const terms = item._embedded?.['wp:term']
-            if (terms && Array.isArray(terms) && terms[0] && Array.isArray(terms[0])) {
-              categories = terms[0].map((term: any) => ({
-                id: term.id,
-                name: term.name,
-                slug: term.slug,
-              }))
-            }
-            let image: string | null = null
-            const media = item._embedded?.['wp:featuredmedia']
-            if (media && Array.isArray(media) && media[0]?.source_url) {
-              image = media[0].source_url
-            }
-            return {
-              id: item.id,
-              title: item.title?.rendered || 'Без названия',
-              content: item.content?.rendered || '',
-              excerpt: item.excerpt?.rendered || '',
-              date: item.date || '',
-              link: item.link || '',
-              slug: item.slug || '',
-              categories,
-              image,
-            }
-          })
+          this.photogalleries = data.map(mapPhotogalleryItem)
         }
         const totalPages = response.headers?.get('x-wp-totalpages')
         if (totalPages) this.totalPhotogalleryPages = parseInt(totalPages)
@@ -424,10 +348,9 @@ export const useContentStore = defineStore('content', {
     // ==================== РАСПИСАНИЕ ====================
 
     async fetchSchedule() {
-      const config = useRuntimeConfig()
-      const wpBase = config.public.wpApi
+      const { apiFetch } = useApi()
       try {
-        const schedulePosts = await $fetch(`${wpBase}/wp-json/wp/v2/schedule`, {
+        const schedulePosts = await apiFetch<any[]>('/schedule', {
           params: { per_page: 100 }
         })
 
@@ -560,7 +483,6 @@ export const useContentStore = defineStore('content', {
   // ==================== GETTERS ====================
 
   getters: {
-    // --- Новости ---
     sortedNews(): NewsItem[] {
       return [...this.news].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     },
@@ -579,7 +501,6 @@ export const useContentStore = defineStore('content', {
       return [{ id: 'all', name: 'Все новости' }, ...Array.from(cats.values())]
     },
 
-    // --- Анонсы ---
     sortedAnnouncements(): Announcement[] {
       return [...this.announcements].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     },
@@ -598,7 +519,6 @@ export const useContentStore = defineStore('content', {
       return [{ id: 'all', name: 'Все анонсы' }, ...Array.from(cats.values())]
     },
 
-    // --- Фотогалереи ---
     sortedPhotogalleries(): PhotoGallery[] {
       return [...this.photogalleries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     },
@@ -617,7 +537,6 @@ export const useContentStore = defineStore('content', {
       return [{ id: 'all', name: 'Все галереи' }, ...Array.from(cats.values())]
     },
 
-    // --- Расписание ---
     sortedSchedule(): ScheduleDay[] {
       return [...this.schedule].sort((a, b) => a.fullDate.localeCompare(b.fullDate))
     },

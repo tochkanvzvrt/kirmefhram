@@ -172,10 +172,6 @@
                 <h3 class="mb-3 font-serif group-hover:text-primary text-xl transition-colors line-clamp-2">
                   {{ item.title }}
                 </h3>
-                <!-- <div class="flex items-center gap-2 mt-auto text-muted-foreground text-sm">
-                  <ImageIcon class="w-4 h-4" />
-                  <span>{{ item.photosCount }} фото</span>
-                </div> -->
               </div>
             </Card>
           </NuxtLink>
@@ -198,10 +194,8 @@ import { ref, computed, onMounted } from 'vue'
 import { Users, Heart, Calendar, Clock, MapPin, ArrowRight, ImageIcon } from 'lucide-vue-next'
 import Card from '~/components/ui/Card.vue'
 import Badge from '~/components/ui/Badge.vue'
-import { useContentStore } from '~/stores/content'
 import { decode } from 'html-entities'
 
-const store = useContentStore()
 const loading = ref(true)
 const loadingYouthNews = ref(false)
 const loadingYouthAnnouncements = ref(false)
@@ -210,31 +204,22 @@ const loadingYouthGalleries = ref(false)
 const youthClubText = ref<string>('')
 const joinText = ref<string>('')
 
-const YOUTH_CATEGORY_ID = 4 // ID категории «Молодёжный кружок» в WordPress
+const YOUTH_CATEGORY_ID = 4
 
 const formatText = (text: string): string => {
   if (!text) return ''
-  return text
-    .replace(/\r\n/g, '<br>')
-    .replace(/\n/g, '<br>')
-    .replace(/\t/g, '&nbsp;&nbsp;')
+  return text.replace(/\r\n/g, '<br>').replace(/\n/g, '<br>').replace(/\t/g, '&nbsp;&nbsp;')
 }
 
+// ==================== ИСПРАВЛЕНО: используем useApi ====================
 const fetchYouthClub = async () => {
   try {
-    const res = await fetch('https://admin.kirmefhram.ru/wp-json/wp/v2/youthclub')
-    const data = await res.json()
-
+    const { apiFetch } = useApi()
+    const data = await apiFetch<any[]>('/youthclub')
     if (Array.isArray(data) && data.length > 0) {
       const item = data[0]
-
-      if (item.description) {
-        youthClubText.value = formatText(item.description)
-      }
-
-      if (item.entry) {
-        joinText.value = formatText(item.entry)
-      }
+      if (item.description) youthClubText.value = formatText(item.description)
+      if (item.entry) joinText.value = formatText(item.entry)
     }
   } catch (err) {
     console.error('fetchYouthClub error:', err)
@@ -245,25 +230,15 @@ const fetchYouthClub = async () => {
   }
 }
 
-// Загружаем 4 последние новости по категории «Молодёжный кружок» напрямую из API
 const youthNews = ref<any[]>([])
 async function fetchYouthNews() {
   loadingYouthNews.value = true
   try {
-    const config = useRuntimeConfig()
-    const wpBase = config.public.wpApi
-    const data = await $fetch(`${wpBase}/wp-json/wp/v2/new`, {
-      params: {
-        _embed: true,
-        per_page: 4,
-        categories: YOUTH_CATEGORY_ID,
-        orderby: 'date',
-        order: 'desc'
-      }
+    const { apiFetch } = useApi()
+    const data = await apiFetch<any[]>('/new', {
+      params: { _embed: true, per_page: 4, categories: YOUTH_CATEGORY_ID, orderby: 'date', order: 'desc' }
     })
-    if (Array.isArray(data)) {
-      youthNews.value = data
-    }
+    if (Array.isArray(data)) youthNews.value = data
   } catch (err) {
     console.error('fetchYouthNews error:', err)
     youthNews.value = []
@@ -272,25 +247,15 @@ async function fetchYouthNews() {
   }
 }
 
-// Загружаем 4 последних анонса по категории «Молодёжный кружок» напрямую из API
 const youthAnnouncements = ref<any[]>([])
 async function fetchYouthAnnouncements() {
   loadingYouthAnnouncements.value = true
   try {
-    const config = useRuntimeConfig()
-    const wpBase = config.public.wpApi
-    const data = await $fetch(`${wpBase}/wp-json/wp/v2/announcement`, {
-      params: {
-        _embed: true,
-        per_page: 4,
-        categories: YOUTH_CATEGORY_ID,
-        orderby: 'date',
-        order: 'desc'
-      }
+    const { apiFetch } = useApi()
+    const data = await apiFetch<any[]>('/announcement', {
+      params: { _embed: true, per_page: 4, categories: YOUTH_CATEGORY_ID, orderby: 'date', order: 'desc' }
     })
-    if (Array.isArray(data)) {
-      youthAnnouncements.value = data
-    }
+    if (Array.isArray(data)) youthAnnouncements.value = data
   } catch (err) {
     console.error('fetchYouthAnnouncements error:', err)
     youthAnnouncements.value = []
@@ -299,24 +264,15 @@ async function fetchYouthAnnouncements() {
   }
 }
 
-// Загружаем 4 последние галереи по категории «Молодёжный кружок» напрямую из API
 const youthGalleries = ref<any[]>([])
 async function fetchYouthGalleries() {
   loadingYouthGalleries.value = true
   try {
-    const config = useRuntimeConfig()
-    const wpBase = config.public.wpApi
-    const data = await $fetch(`${wpBase}/wp-json/wp/v2/photogallery`, {
-      params: {
-        per_page: 4,
-        categories: YOUTH_CATEGORY_ID,
-        orderby: 'date',
-        order: 'desc'
-      }
+    const { apiFetch } = useApi()
+    const data = await apiFetch<any[]>('/photogallery', {
+      params: { per_page: 4, categories: YOUTH_CATEGORY_ID, orderby: 'date', order: 'desc' }
     })
-    if (Array.isArray(data)) {
-      youthGalleries.value = data
-    }
+    if (Array.isArray(data)) youthGalleries.value = data
   } catch (err) {
     console.error('fetchYouthGalleries error:', err)
     youthGalleries.value = []
@@ -324,6 +280,7 @@ async function fetchYouthGalleries() {
     loadingYouthGalleries.value = false
   }
 }
+// =====================================================================
 
 onMounted(async () => {
   await Promise.all([
@@ -334,29 +291,21 @@ onMounted(async () => {
   ])
 })
 
-// Функции для формирования URL с использованием slug
 const getNewsUrl = (item: any): string => {
-  if (item.slug && item.slug.trim() !== '') {
-    return `/news/${item.slug}`
-  }
+  if (item.slug && item.slug.trim() !== '') return `/news/${item.slug}`
   return `/news/${item.id}`
 }
 
 const getAnnouncementUrl = (item: any): string => {
-  if (item.slug && item.slug.trim() !== '') {
-    return `/announcements/${item.slug}`
-  }
+  if (item.slug && item.slug.trim() !== '') return `/announcements/${item.slug}`
   return `/announcements/${item.id}`
 }
 
 const getGalleryUrl = (item: any): string => {
-  if (item.slug && item.slug.trim() !== '' && item.slug !== String(item.id)) {
-    return `/gallery/${item.slug}`
-  }
+  if (item.slug && item.slug.trim() !== '' && item.slug !== String(item.id)) return `/gallery/${item.slug}`
   return `/gallery/${item.id}`
 }
 
-// Преобразуем сырые данные новостей
 const latestYouthNews = computed(() => {
   return youthNews.value.map((item: any) => ({
     id: item.id,
@@ -367,14 +316,11 @@ const latestYouthNews = computed(() => {
     date: item.date || '',
     image: item._embedded?.['wp:featuredmedia']?.[0]?.source_url || null,
     categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
-      id: term.id,
-      name: term.name,
-      slug: term.slug,
+      id: term.id, name: term.name, slug: term.slug,
     })) || [],
   }))
 })
 
-// Преобразуем сырые данные анонсов
 const latestYouthAnnouncements = computed(() => {
   return youthAnnouncements.value.map((item: any) => ({
     id: item.id,
@@ -384,42 +330,29 @@ const latestYouthAnnouncements = computed(() => {
     date: item.date || '',
     image: item._embedded?.['wp:featuredmedia']?.[0]?.source_url || null,
     categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
-      id: term.id,
-      name: term.name,
-      slug: term.slug,
+      id: term.id, name: term.name, slug: term.slug,
     })) || [],
   }))
 })
 
-// Преобразуем сырые данные галерей
 const latestYouthGalleries = computed(() => {
   return youthGalleries.value.map((item: any) => {
     let coverImage = item.photo?.guid || null
-    if (coverImage) {
-      coverImage = coverImage.replace(/\\\\/g, '\\')
-    }
-    
-    const photosCount = Array.isArray(item.gallery_photos) ? item.gallery_photos.length : 0
-    
+    if (coverImage) coverImage = coverImage.replace(/\\\\/g, '\\')
     return {
       id: item.id,
       slug: item.slug || '',
       title: decode(item.title?.rendered || item.albumname || 'Без названия'),
       date: item.date || '',
       image: coverImage,
-      photosCount,
+      photosCount: Array.isArray(item.gallery_photos) ? item.gallery_photos.length : 0,
     }
   })
 })
 
 const formatDate = (dateStr: string): string => {
   if (!dateStr) return ''
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  return new Date(dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 const stripHtml = (html: string): string => {

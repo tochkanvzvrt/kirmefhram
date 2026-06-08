@@ -1,7 +1,8 @@
 <template>
   <div class="w-full">
     <!-- Hero -->
-    <section class="relative flex justify-center items-center py-20 text-white overflow-hidden bg-gradient-to-br from-primary to-primary/80">
+    <section
+      class="relative flex justify-center items-center py-20 text-white overflow-hidden bg-gradient-to-br from-primary to-primary/80">
       <div class="relative z-10 mx-auto px-4 lg:px-8 text-center container">
         <h1 class="mb-4 font-serif text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl break-words">
           {{ gallery.title }}
@@ -35,10 +36,10 @@
           class="group relative bg-muted aspect-square rounded-lg overflow-hidden cursor-pointer"
           @click="openLightbox(photo.guid)">
           <img :src="photo.guid" :alt="photo.post_title || 'Фото'"
-            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            loading="lazy"
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy"
             @error="(e) => { (e.target as HTMLImageElement).src = '/images/question.png' }" />
-          <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
+          <div
+            class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
             <Search class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </div>
         </div>
@@ -65,7 +66,8 @@
     <Teleport to="body">
       <div v-if="lightboxImage" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
         @click="closeLightbox">
-        <button class="absolute top-4 right-4 text-white text-3xl hover:opacity-70 transition z-10" @click="closeLightbox">
+        <button class="absolute top-4 right-4 text-white text-3xl hover:opacity-70 transition z-10"
+          @click="closeLightbox">
           ✕
         </button>
         <button @click.stop="prevPhoto" :disabled="currentPhotoIndex <= 0"
@@ -91,13 +93,13 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { decode } from 'html-entities'
 
 const route = useRoute()
-const config = useRuntimeConfig()
-const wpBase = config.public.wpApi
 const gallerySlug = route.params.slug
 
-// Запрос по slug с _embed для получения категорий
+// ==================== ИСПРАВЛЕНО ====================
+const { baseURL } = useApi()
+
 const { data: galleryData, error } = await useFetch(
-  `${wpBase}/wp-json/wp/v2/photogallery`,
+  `${baseURL}/wp-json/wp/v2/photogallery`,
   {
     params: {
       slug: gallerySlug,
@@ -106,6 +108,7 @@ const { data: galleryData, error } = await useFetch(
     }
   }
 )
+// ===================================================
 
 if (error.value || !galleryData.value || !Array.isArray(galleryData.value) || galleryData.value.length === 0) {
   throw createError({ statusCode: 404, message: 'Галерея не найдена' })
@@ -113,8 +116,7 @@ if (error.value || !galleryData.value || !Array.isArray(galleryData.value) || ga
 
 const gallery = computed(() => {
   const item = galleryData.value[0] as any
-  
-  // Обрабатываем фото
+
   let photos: any[] = []
   if (Array.isArray(item.gallery_photos)) {
     photos = item.gallery_photos.map((photo: any) => ({
@@ -122,7 +124,7 @@ const gallery = computed(() => {
       guid: photo.guid ? photo.guid.replace(/\\\\/g, '\\') : '',
     }))
   }
-  
+
   return {
     id: item.id,
     slug: item.slug || '',
@@ -147,7 +149,6 @@ const formatDate = (dateStr: string) => {
   })
 }
 
-// Лайтбокс
 const lightboxImage = ref<string | null>(null)
 const currentPhotoIndex = ref(0)
 

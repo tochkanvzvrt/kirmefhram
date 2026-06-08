@@ -17,9 +17,7 @@
         <p>Ошибка загрузки данных. Попробуйте позже.</p>
       </div>
       <div v-else class="gap-8 grid grid-cols-1 lg:grid-cols-2 mb-12">
-        <!-- Левый блок: контакты из API -->
         <div class="space-y-6">
-          <!-- Адрес (статический, при желании можно вынести в API) -->
           <Card class="p-6">
             <div class="flex items-start gap-4">
               <div class="flex flex-shrink-0 justify-center items-center bg-primary/10 rounded-full w-12 h-12">
@@ -111,7 +109,6 @@
         </div>
       </div>
 
-      <!-- Блок реквизитов (HTML из API) -->
       <div class="mx-auto max-w-4xl">
         <Card class="bg-muted/30 p-8">
           <h2 class="mb-6 font-serif text-primary text-2xl">Реквизиты прихода</h2>
@@ -125,16 +122,16 @@
 <script setup lang="ts">
 import { MapPin, Phone, Mail, Clock } from 'lucide-vue-next'
 import Card from '~/components/ui/Card.vue'
-import { useRuntimeConfig } from '#app'
 
-const config = useRuntimeConfig()
-const wpBase = config.public.wpApi
+// ==================== ИСПРАВЛЕНО: используем useApi ====================
+const { baseURL } = useApi()
 
-const { data, pending, error } = await useFetch<Array<any>>(`${wpBase}/wp-json/wp/v2/details`, {
+const { data, pending, error } = await useFetch<Array<any>>(`${baseURL}/wp-json/wp/v2/details`, {
   key: 'contacts',
   server: true,
   params: { per_page: 1 }
 })
+// =====================================================================
 
 const contact = computed(() => data.value?.[0] || null)
 

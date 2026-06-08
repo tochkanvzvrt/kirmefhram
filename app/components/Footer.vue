@@ -100,17 +100,16 @@
 
 <script setup lang="ts">
 import { Church, Phone } from 'lucide-vue-next'
-import { useRuntimeConfig } from '#app'
 
-const config = useRuntimeConfig()
-const wpBase = config.public.wpApi
+// ==================== ИСПРАВЛЕНО ====================
+const { baseURL } = useApi()
 
-// Загружаем данные один раз для всего сайта (кеширование по ключу)
-const { data, pending } = await useFetch<Array<any>>(`${wpBase}/wp-json/wp/v2/details`, {
+const { data, pending } = await useFetch<Array<any>>(`${baseURL}/wp-json/wp/v2/details`, {
   key: 'footer-details',
   server: true,
   params: { per_page: 1 }
 })
+// ===================================================
 
 const contact = computed(() => data.value?.[0] || null)
 const workingHours = computed(() => contact.value?.time || '07:00 – 20:00')

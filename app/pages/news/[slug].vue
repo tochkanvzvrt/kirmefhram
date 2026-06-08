@@ -49,13 +49,10 @@
 
 <script setup lang="ts">
 import { ArrowLeft } from 'lucide-vue-next'
-import { useRuntimeConfig } from '#app'
 import { decode } from 'html-entities'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 const route = useRoute()
-const config = useRuntimeConfig()
-const wpBase = config.public.wpApi
 const newsSlug = route.params.slug
 
 const stripHtml = (html: string): string => {
@@ -63,9 +60,11 @@ const stripHtml = (html: string): string => {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-// Запрос по slug — API возвращает массив
+// ==================== ИСПРАВЛЕНО ====================
+const { baseURL } = useApi()
+
 const { data: articleData, error } = await useFetch(
-  `${wpBase}/wp-json/wp/v2/new`,
+  `${baseURL}/wp-json/wp/v2/new`,
   {
     params: {
       slug: newsSlug,
@@ -74,6 +73,7 @@ const { data: articleData, error } = await useFetch(
     }
   }
 )
+// ===================================================
 
 // Проверяем: массив не пустой
 if (error.value || !articleData.value || !Array.isArray(articleData.value) || articleData.value.length === 0) {

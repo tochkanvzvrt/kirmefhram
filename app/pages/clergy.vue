@@ -52,8 +52,6 @@
 <script setup lang="ts">
 import { Users } from 'lucide-vue-next'
 import Card from '~/components/ui/Card.vue'
-import { useRuntimeConfig } from '#app'
-import { decode } from 'html-entities'
 
 interface ClergyMember {
   id: number
@@ -63,10 +61,10 @@ interface ClergyMember {
   mitlink?: string
 }
 
-const config = useRuntimeConfig()
-const wpBase = config.public.wpApi
+// ==================== ИСПРАВЛЕНО: используем useApi ====================
+const { baseURL } = useApi()
 
-const { data, pending, error } = await useFetch<Array<any>>(`${wpBase}/wp-json/wp/v2/clergy`, {
+const { data, pending, error } = await useFetch<Array<any>>(`${baseURL}/wp-json/wp/v2/clergy`, {
   key: 'clergy',
   server: true,
   params: {
@@ -74,8 +72,8 @@ const { data, pending, error } = await useFetch<Array<any>>(`${wpBase}/wp-json/w
     per_page: 100,
   }
 })
+// =====================================================================
 
-// Преобразуем данные
 const clergy = computed<ClergyMember[]>(() => {
   if (!data.value || !Array.isArray(data.value)) return []
 
@@ -100,7 +98,6 @@ const clergy = computed<ClergyMember[]>(() => {
   })
 })
 
-// SEO
 useHead({
   title: 'Духовенство | Кирилло-Мефодиевский храм',
   meta: [
@@ -112,7 +109,6 @@ useHead({
 <style scoped>
 .clergy-description {
   white-space: pre-wrap;
-  /* сохраняет переносы строк из текста */
   word-wrap: break-word;
   font-size: 0.875rem;
   line-height: 1.5;
