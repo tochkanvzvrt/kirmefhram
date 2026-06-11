@@ -44,6 +44,12 @@ interface ScheduleDay {
   services: string
 }
 
+// ==================== ФИКС ИЗОБРАЖЕНИЙ ====================
+const fixImage = (url: string | null): string | null => {
+  if (!url) return url
+  return `/api/image-proxy?url=${encodeURIComponent(url)}`
+}
+
 // ==================== МАППЕРЫ ДАННЫХ ====================
 
 const mapNewsItem = (item: any): NewsItem => ({
@@ -59,7 +65,7 @@ const mapNewsItem = (item: any): NewsItem => ({
     name: term.name,
     slug: term.slug,
   })) || [],
-  image: item._embedded?.['wp:featuredmedia']?.[0]?.source_url || null,
+  image: fixImage(item._embedded?.['wp:featuredmedia']?.[0]?.source_url || null),
 })
 
 const mapAnnouncementItem = (item: any): Announcement => {
@@ -75,7 +81,7 @@ const mapAnnouncementItem = (item: any): Announcement => {
   let image: string | null = null
   const media = item._embedded?.['wp:featuredmedia']
   if (media && Array.isArray(media) && media[0]?.source_url) {
-    image = media[0].source_url
+    image = fixImage(media[0].source_url)
   }
   return {
     id: item.id,
@@ -103,7 +109,7 @@ const mapPhotogalleryItem = (item: any): PhotoGallery => {
   let image: string | null = null
   const media = item._embedded?.['wp:featuredmedia']
   if (media && Array.isArray(media) && media[0]?.source_url) {
-    image = media[0].source_url
+    image = fixImage(media[0].source_url)
   }
   return {
     id: item.id,
@@ -159,8 +165,6 @@ export const useContentStore = defineStore('content', {
   }),
 
   actions: {
-    // ==================== КАТЕГОРИИ ====================
-
     async fetchAllNewsCategories() {
       if (this.allNewsCategoriesList.length > 0) return
       const { apiFetch } = useApi()
@@ -209,8 +213,6 @@ export const useContentStore = defineStore('content', {
       }
     },
 
-    // ==================== ЛЕНТА (главная страница) ====================
-
     async fetchNews() {
       const { apiFetch } = useApi()
       try {
@@ -256,30 +258,19 @@ export const useContentStore = defineStore('content', {
       }
     },
 
-    // ==================== ПАГИНАЦИЯ ====================
-
     async fetchNewsPage(page: number, perPage: number = 20, categoryId?: number) {
       const { baseURL } = useApi()
       const params: any = {
-        _embed: true,
-        per_page: perPage,
-        page: page,
-        orderby: 'date',
-        order: 'desc'
+        _embed: true, per_page: perPage, page: page, orderby: 'date', order: 'desc'
       }
-      if (categoryId) {
-        params.categories = categoryId
-      }
+      if (categoryId) params.categories = categoryId
       try {
         const response = await $fetch.raw(`${baseURL}/wp-json/wp/v2/new`, { params })
-        const data = response._data
-        if (Array.isArray(data)) {
-          this.news = data.map(mapNewsItem)
-        }
-        const totalPages = response.headers?.get('x-wp-totalpages')
-        if (totalPages) this.totalNewsPages = parseInt(totalPages)
-        const totalItems = response.headers?.get('x-wp-total')
-        if (totalItems) this.totalNewsItems = parseInt(totalItems)
+        if (Array.isArray(response._data)) this.news = response._data.map(mapNewsItem)
+        const tp = response.headers?.get('x-wp-totalpages')
+        if (tp) this.totalNewsPages = parseInt(tp)
+        const ti = response.headers?.get('x-wp-total')
+        if (ti) this.totalNewsItems = parseInt(ti)
         this.currentNewsPage = page
       } catch (err) {
         console.error('Ошибка загрузки страницы новостей:', err)
@@ -290,25 +281,16 @@ export const useContentStore = defineStore('content', {
     async fetchAnnouncementsPage(page: number, perPage: number = 20, categoryId?: number) {
       const { baseURL } = useApi()
       const params: any = {
-        _embed: true,
-        per_page: perPage,
-        page: page,
-        orderby: 'date',
-        order: 'desc'
+        _embed: true, per_page: perPage, page: page, orderby: 'date', order: 'desc'
       }
-      if (categoryId) {
-        params.categories = categoryId
-      }
+      if (categoryId) params.categories = categoryId
       try {
         const response = await $fetch.raw(`${baseURL}/wp-json/wp/v2/announcement`, { params })
-        const data = response._data
-        if (Array.isArray(data)) {
-          this.announcements = data.map(mapAnnouncementItem)
-        }
-        const totalPages = response.headers?.get('x-wp-totalpages')
-        if (totalPages) this.totalAnnouncementPages = parseInt(totalPages)
-        const totalItems = response.headers?.get('x-wp-total')
-        if (totalItems) this.totalAnnouncementItems = parseInt(totalItems)
+        if (Array.isArray(response._data)) this.announcements = response._data.map(mapAnnouncementItem)
+        const tp = response.headers?.get('x-wp-totalpages')
+        if (tp) this.totalAnnouncementPages = parseInt(tp)
+        const ti = response.headers?.get('x-wp-total')
+        if (ti) this.totalAnnouncementItems = parseInt(ti)
         this.currentAnnouncementPage = page
       } catch (err) {
         console.error('Ошибка загрузки страницы анонсов:', err)
@@ -319,25 +301,16 @@ export const useContentStore = defineStore('content', {
     async fetchPhotogalleriesPage(page: number, perPage: number = 20, categoryId?: number) {
       const { baseURL } = useApi()
       const params: any = {
-        _embed: true,
-        per_page: perPage,
-        page: page,
-        orderby: 'date',
-        order: 'desc'
+        _embed: true, per_page: perPage, page: page, orderby: 'date', order: 'desc'
       }
-      if (categoryId) {
-        params.categories = categoryId
-      }
+      if (categoryId) params.categories = categoryId
       try {
         const response = await $fetch.raw(`${baseURL}/wp-json/wp/v2/photogallery`, { params })
-        const data = response._data
-        if (Array.isArray(data)) {
-          this.photogalleries = data.map(mapPhotogalleryItem)
-        }
-        const totalPages = response.headers?.get('x-wp-totalpages')
-        if (totalPages) this.totalPhotogalleryPages = parseInt(totalPages)
-        const totalItems = response.headers?.get('x-wp-total')
-        if (totalItems) this.totalPhotogalleryItems = parseInt(totalItems)
+        if (Array.isArray(response._data)) this.photogalleries = response._data.map(mapPhotogalleryItem)
+        const tp = response.headers?.get('x-wp-totalpages')
+        if (tp) this.totalPhotogalleryPages = parseInt(tp)
+        const ti = response.headers?.get('x-wp-total')
+        if (ti) this.totalPhotogalleryItems = parseInt(ti)
         this.currentPhotogalleryPage = page
       } catch (err) {
         console.error('Ошибка загрузки страницы фотогалерей:', err)
@@ -345,22 +318,15 @@ export const useContentStore = defineStore('content', {
       }
     },
 
-    // ==================== РАСПИСАНИЕ ====================
-
     async fetchSchedule() {
       const { apiFetch } = useApi()
       try {
-        const schedulePosts = await apiFetch<any[]>('/schedule', {
-          params: { per_page: 100 }
-        })
-
+        const schedulePosts = await apiFetch<any[]>('/schedule', { params: { per_page: 100 } })
         if (!Array.isArray(schedulePosts) || schedulePosts.length === 0) {
           this.schedule = []
           return
         }
-
         const dayMap = new Map<string, ScheduleDay>()
-
         for (const post of schedulePosts) {
           const monthCurrent = post.month_current
           if (!monthCurrent || typeof monthCurrent !== 'string') continue
@@ -370,10 +336,7 @@ export const useContentStore = defineStore('content', {
           const currentMonth = currentDate.getMonth()
           const lastDayCurrent = new Date(currentYear, currentMonth + 1, 0).getDate()
 
-          let nextYear = currentYear
-          let nextMonth = currentMonth + 1
-          let lastDayNext = 31
-          let hasNextMonth = false
+          let nextYear = currentYear, nextMonth = currentMonth + 1, lastDayNext = 31, hasNextMonth = false
           if (post.month_next1 && typeof post.month_next1 === 'string') {
             const nextDate = new Date(post.month_next1)
             if (!isNaN(nextDate.getTime())) {
@@ -384,95 +347,60 @@ export const useContentStore = defineStore('content', {
             }
           }
 
-          const addOrUpdateDay = (
-            year: number,
-            month: number,
-            dayNum: number,
-            liturgicalText?: string,
-            servicesText?: string
-          ) => {
+          const addOrUpdateDay = (year: number, month: number, dayNum: number, liturgicalText?: string, servicesText?: string) => {
             if (dayNum < 1) return
             const fullDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`
-            const dateObj = new Date(fullDate)
-            const dayName = dateObj.toLocaleDateString('ru-RU', { weekday: 'long' })
+            const dayName = new Date(fullDate).toLocaleDateString('ru-RU', { weekday: 'long' })
             const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1)
-
             let existing = dayMap.get(fullDate)
             if (!existing) {
-              existing = {
-                fullDate,
-                date: String(dayNum),
-                day: capitalizedDay,
-                liturgical: '',
-                services: '',
-              }
+              existing = { fullDate, date: String(dayNum), day: capitalizedDay, liturgical: '', services: '' }
               dayMap.set(fullDate, existing)
             }
-            if (liturgicalText !== undefined && liturgicalText.trim()) {
-              existing.liturgical = liturgicalText
-            }
-            if (servicesText !== undefined && servicesText.trim()) {
-              existing.services = servicesText
-            }
+            if (liturgicalText !== undefined && liturgicalText.trim()) existing.liturgical = liturgicalText
+            if (servicesText !== undefined && servicesText.trim()) existing.services = servicesText
           }
 
           for (const [key, value] of Object.entries(post)) {
-            if (!key.startsWith('liturgical_day')) continue
-            if (key.includes('_next_month')) continue
-            if (!value || value === false || value === '') continue
-
+            if (!key.startsWith('liturgical_day') || key.includes('_next_month') || !value || value === false || value === '') continue
             const match = key.match(/liturgical_day(\d+)$/)
             if (!match) continue
             const dayNum = parseInt(match[1], 10)
             if (isNaN(dayNum) || dayNum < 1 || dayNum > lastDayCurrent) continue
-
             addOrUpdateDay(currentYear, currentMonth, dayNum, String(value), undefined)
           }
 
           for (const [key, value] of Object.entries(post)) {
-            if (!key.startsWith('daily_schedule')) continue
-            if (key.includes('_next_month')) continue
-            if (!value || value === false || value === '') continue
-
+            if (!key.startsWith('daily_schedule') || key.includes('_next_month') || !value || value === false || value === '') continue
             const match = key.match(/daily_schedule(\d+)$/)
             if (!match) continue
             const dayNum = parseInt(match[1], 10)
             if (isNaN(dayNum) || dayNum < 1 || dayNum > lastDayCurrent) continue
-
             addOrUpdateDay(currentYear, currentMonth, dayNum, undefined, String(value))
           }
 
           if (hasNextMonth) {
             for (const [key, value] of Object.entries(post)) {
-              if (!key.startsWith('liturgical_day_next_month')) continue
-              if (!value || value === false || value === '') continue
-
+              if (!key.startsWith('liturgical_day_next_month') || !value || value === false || value === '') continue
               const match = key.match(/liturgical_day_next_month(\d+)$/)
               if (!match) continue
               const dayNum = parseInt(match[1], 10)
               if (isNaN(dayNum) || dayNum < 1 || dayNum > lastDayNext) continue
-
               addOrUpdateDay(nextYear, nextMonth, dayNum, String(value), undefined)
             }
-
             for (const [key, value] of Object.entries(post)) {
-              if (!key.startsWith('daily_schedule_next_month')) continue
-              if (!value || value === false || value === '') continue
-
+              if (!key.startsWith('daily_schedule_next_month') || !value || value === false || value === '') continue
               const match = key.match(/daily_schedule_next_month(\d+)$/)
               if (!match) continue
               const dayNum = parseInt(match[1], 10)
               if (isNaN(dayNum) || dayNum < 1 || dayNum > lastDayNext) continue
-
               addOrUpdateDay(nextYear, nextMonth, dayNum, undefined, String(value))
             }
           }
         }
-
         this.schedule = Array.from(dayMap.values())
           .filter(day => day.liturgical || day.services)
           .sort((a, b) => a.fullDate.localeCompare(b.fullDate))
-
       } catch (err) {
         console.error('Ошибка загрузки расписания:', err)
         this.schedule = []
@@ -480,17 +408,13 @@ export const useContentStore = defineStore('content', {
     },
   },
 
-  // ==================== GETTERS ====================
-
   getters: {
     sortedNews(): NewsItem[] {
       return [...this.news].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     },
-
     latestNews(): NewsItem[] {
       return [...this.feedNews].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4)
     },
-
     allNewsCategories(): { id: string | number; name: string }[] {
       const cats = new Map()
       this.news.forEach(article => {
@@ -500,15 +424,12 @@ export const useContentStore = defineStore('content', {
       })
       return [{ id: 'all', name: 'Все новости' }, ...Array.from(cats.values())]
     },
-
     sortedAnnouncements(): Announcement[] {
       return [...this.announcements].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     },
-
     latestAnnouncements(): Announcement[] {
       return [...this.feedAnnouncements].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4)
     },
-
     allAnnouncementCategories(): { id: string | number; name: string }[] {
       const cats = new Map()
       this.announcements.forEach(article => {
@@ -518,15 +439,12 @@ export const useContentStore = defineStore('content', {
       })
       return [{ id: 'all', name: 'Все анонсы' }, ...Array.from(cats.values())]
     },
-
     sortedPhotogalleries(): PhotoGallery[] {
       return [...this.photogalleries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     },
-
     latestPhotogalleries(): PhotoGallery[] {
       return [...this.feedPhotogalleries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4)
     },
-
     allPhotogalleryCategories(): { id: string | number; name: string }[] {
       const cats = new Map()
       this.photogalleries.forEach(gallery => {
@@ -536,23 +454,18 @@ export const useContentStore = defineStore('content', {
       })
       return [{ id: 'all', name: 'Все галереи' }, ...Array.from(cats.values())]
     },
-
     sortedSchedule(): ScheduleDay[] {
       return [...this.schedule].sort((a, b) => a.fullDate.localeCompare(b.fullDate))
     },
-
     todaySchedule(): ScheduleDay | null {
       const todayStr = new Date().toISOString().slice(0, 10)
       return this.schedule.find(item => item.fullDate === todayStr) || null
     },
-
     tomorrowSchedule(): ScheduleDay | null {
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)
-      const tomorrowStr = tomorrow.toISOString().slice(0, 10)
-      return this.schedule.find(item => item.fullDate === tomorrowStr) || null
+      return this.schedule.find(item => item.fullDate === tomorrow.toISOString().slice(0, 10)) || null
     },
-
     filledScheduleForTodayAndNextTwo(): ScheduleDay[] {
       const todayStr = new Date().toISOString().slice(0, 10)
       const sorted = this.sortedSchedule
@@ -564,22 +477,19 @@ export const useContentStore = defineStore('content', {
       const filled: ScheduleDay[] = []
       for (let i = startIndex; i < sorted.length && filled.length < 3; i++) {
         const day = sorted[i]
-        if ((day.liturgical && day.liturgical.trim() !== '') ||
-          (day.services && day.services.trim() !== '')) {
+        if ((day.liturgical && day.liturgical.trim() !== '') || (day.services && day.services.trim() !== '')) {
           filled.push(day)
         }
       }
       return filled
     },
-
     upcomingSchedule(): (daysCount: number) => ScheduleDay[] {
       return (daysCount: number = 7) => {
         const today = new Date()
         const todayStr = today.toISOString().slice(0, 10)
         const future = new Date(today)
         future.setDate(today.getDate() + daysCount)
-        const futureStr = future.toISOString().slice(0, 10)
-        return this.schedule.filter(item => item.fullDate >= todayStr && item.fullDate <= futureStr)
+        return this.schedule.filter(item => item.fullDate >= todayStr && item.fullDate <= future.toISOString().slice(0, 10))
       }
     },
   },
