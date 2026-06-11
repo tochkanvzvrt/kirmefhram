@@ -44,12 +44,6 @@ interface ScheduleDay {
   services: string
 }
 
-// ==================== ФИКС ИЗОБРАЖЕНИЙ ====================
-const fixImage = (url: string | null): string | null => {
-  if (!url) return url
-  return url.replace('admin.kirmefhram.ru', 'kirmefhram.ru')
-}
-
 // ==================== МАППЕРЫ ДАННЫХ ====================
 
 const mapNewsItem = (item: any): NewsItem => ({
@@ -65,7 +59,7 @@ const mapNewsItem = (item: any): NewsItem => ({
     name: term.name,
     slug: term.slug,
   })) || [],
-  image: fixImage(item._embedded?.['wp:featuredmedia']?.[0]?.source_url || null),
+  image: item._embedded?.['wp:featuredmedia']?.[0]?.source_url || null,
 })
 
 const mapAnnouncementItem = (item: any): Announcement => {
@@ -81,7 +75,7 @@ const mapAnnouncementItem = (item: any): Announcement => {
   let image: string | null = null
   const media = item._embedded?.['wp:featuredmedia']
   if (media && Array.isArray(media) && media[0]?.source_url) {
-    image = fixImage(media[0].source_url)
+    image = media[0].source_url
   }
   return {
     id: item.id,
@@ -109,7 +103,7 @@ const mapPhotogalleryItem = (item: any): PhotoGallery => {
   let image: string | null = null
   const media = item._embedded?.['wp:featuredmedia']
   if (media && Array.isArray(media) && media[0]?.source_url) {
-    image = fixImage(media[0].source_url)
+    image = media[0].source_url
   }
   return {
     id: item.id,
@@ -215,7 +209,7 @@ export const useContentStore = defineStore('content', {
       }
     },
 
-    // ==================== ЛЕНТА ====================
+    // ==================== ЛЕНТА (главная страница) ====================
 
     async fetchNews() {
       const { apiFetch } = useApi()
@@ -485,6 +479,8 @@ export const useContentStore = defineStore('content', {
       }
     },
   },
+
+  // ==================== GETTERS ====================
 
   getters: {
     sortedNews(): NewsItem[] {
