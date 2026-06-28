@@ -60,7 +60,6 @@ const stripHtml = (html: string): string => {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-// ==================== ИСПРАВЛЕНО ====================
 const { baseURL } = useApi()
 
 const { data: articleData, error } = await useFetch(
@@ -73,15 +72,15 @@ const { data: articleData, error } = await useFetch(
     }
   }
 )
-// ===================================================
 
-// Проверяем: массив не пустой
 if (import.meta.server && (error.value || !articleData.value || !Array.isArray(articleData.value) || articleData.value.length === 0)) {
   throw createError({ statusCode: 404, message: 'Новость не найдена' })
 }
 
 const article = computed(() => {
-  // Берём первый (и единственный) элемент массива
+  if (!articleData.value || !Array.isArray(articleData.value) || articleData.value.length === 0) {
+    return { id: 0, slug: '', title: '', content: '', date: '', categories: [], image: null }
+  }
   const item = articleData.value[0] as any
   const rawTitle = item.title?.rendered || 'Без названия'
   return {
@@ -114,7 +113,6 @@ const fullUrl = computed(() => {
   return `${baseUrl}/news/${newsSlug}`
 })
 
-// Лайтбокс
 const lightboxImage = ref<string | null>(null)
 
 function openLightbox(src: string) {
@@ -235,7 +233,6 @@ useHead({
   border-radius: 0.5rem;
 }
 
-/* Выравнивание */
 .wp-content :deep(.aligncenter) {
   text-align: center;
   display: block;
@@ -313,7 +310,6 @@ useHead({
   font-weight: 600;
 }
 
-/* Ссылки */
 .wp-content :deep(a) {
   color: rgb(138, 45, 30);
   text-decoration: underline;
@@ -342,24 +338,10 @@ useHead({
   text-align: left;
 }
 
-/* Все варианты выравнивания текста из админки */
-.wp-content :deep(.has-text-align-left) {
-  text-align: left;
-}
-
-.wp-content :deep(.has-text-align-center) {
-  text-align: center;
-}
-
-.wp-content :deep(.has-text-align-right) {
-  text-align: right;
-}
-
 .wp-content :deep(.has-text-align-justify) {
   text-align: justify;
 }
 
-/* Выравнивание для заголовков */
 .wp-content :deep(h1.has-text-align-left),
 .wp-content :deep(h2.has-text-align-left),
 .wp-content :deep(h3.has-text-align-left),
@@ -387,7 +369,6 @@ useHead({
   text-align: right;
 }
 
-/* Цвета текста */
 .wp-content :deep(.has-primary-color) {
   color: var(--wp--preset--color--primary, #1a3a5c);
 }
@@ -400,7 +381,6 @@ useHead({
   color: inherit;
 }
 
-/* Размеры текста */
 .wp-content :deep(.has-small-font-size) {
   font-size: 0.875rem;
 }
@@ -417,7 +397,6 @@ useHead({
   font-size: 2rem;
 }
 
-/* Кнопки из Гутенберга */
 .wp-content :deep(.wp-block-button__link) {
   display: inline-block;
   padding: 0.75em 1.5em;
@@ -432,7 +411,6 @@ useHead({
   background-color: var(--primary-dark, #152d4a);
 }
 
-/* Цитаты */
 .wp-content :deep(.wp-block-quote) {
   border-left: 4px solid var(--primary, #1a3a5c);
   padding-left: 1em;
@@ -441,7 +419,6 @@ useHead({
   color: #4a5568;
 }
 
-/* Разделители */
 .wp-content :deep(.wp-block-separator) {
   border: none;
   height: 2px;
@@ -449,12 +426,10 @@ useHead({
   margin: 2em 0;
 }
 
-/* Списки с галочками и другие */
 .wp-content :deep(.wp-block-list) {
   list-style-position: inside;
 }
 
-/* ======= ГАЛЕРЕЯ WORDPRESS (БЛОК ГУТЕНБЕРГА) ======= */
 .wp-content :deep(.wp-block-gallery) {
   display: grid !important;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)) !important;
@@ -481,11 +456,6 @@ useHead({
   transition: transform 0.2s;
 }
 
-.wp-content :deep(.wp-block-gallery img:hover) {
-  transform: scale(1.02);
-}
-
-/* Адаптив */
 @media (max-width: 768px) {
   .wp-content :deep(.wp-block-gallery) {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
@@ -499,10 +469,8 @@ useHead({
   }
 }
 
-/* ======= АДАПТИВ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ ======= */
 @media (max-width: 768px) {
 
-  /* Отмена обтекания для выравненных элементов */
   .wp-content :deep(.alignleft),
   .wp-content :deep(.alignright),
   .wp-content :deep(figure.alignleft),
@@ -512,7 +480,6 @@ useHead({
     margin: 1em auto;
   }
 
-  /* Адаптив для iframe (видео) — только на мобилках */
   .wp-content :deep(iframe) {
     width: 100% !important;
     max-width: 100% !important;
@@ -523,15 +490,12 @@ useHead({
     box-sizing: border-box;
   }
 
-  /* Галерея: 2 колонки на планшетах/телефонах */
   .wp-content :deep(.gallery-item) {
     flex: 0 1 calc(50% - 0.5rem);
   }
 }
 
 @media (max-width: 480px) {
-
-  /* На очень узких экранах — 1 колонка */
   .wp-content :deep(.gallery-item) {
     flex: 0 1 100%;
   }

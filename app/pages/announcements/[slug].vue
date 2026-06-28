@@ -60,7 +60,6 @@ const stripHtml = (html: string): string => {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-// ==================== ИСПРАВЛЕНО ====================
 const { baseURL } = useApi()
 
 const { data: articleData, error } = await useFetch(
@@ -73,13 +72,15 @@ const { data: articleData, error } = await useFetch(
     }
   }
 )
-// ===================================================
 
 if (import.meta.server && (error.value || !articleData.value || !Array.isArray(articleData.value) || articleData.value.length === 0)) {
   throw createError({ statusCode: 404, message: 'Анонс не найден' })
 }
 
 const article = computed(() => {
+  if (!articleData.value || !Array.isArray(articleData.value) || articleData.value.length === 0) {
+    return { id: 0, slug: '', title: '', content: '', date: '', categories: [], image: null }
+  }
   const item = articleData.value[0] as any
   const rawTitle = item.title?.rendered || 'Без названия'
   return {
@@ -232,7 +233,6 @@ useHead({
   cursor: pointer;
 }
 
-/* Выравнивание */
 .wp-content :deep(.aligncenter) {
   text-align: center;
   display: block;
@@ -430,7 +430,6 @@ useHead({
   list-style-position: inside;
 }
 
-/* Галерея */
 .wp-content :deep(.wp-block-gallery) {
   display: grid !important;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)) !important;
@@ -456,10 +455,6 @@ useHead({
   border-radius: 8px;
   transition: transform 0.2s;
   cursor: pointer;
-}
-
-.wp-content :deep(.wp-block-gallery img:hover) {
-  transform: scale(1.02);
 }
 
 @media (max-width: 768px) {

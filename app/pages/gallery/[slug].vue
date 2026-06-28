@@ -95,7 +95,6 @@ import { decode } from 'html-entities'
 const route = useRoute()
 const gallerySlug = route.params.slug
 
-// ==================== ИСПРАВЛЕНО ====================
 const { baseURL } = useApi()
 
 const { data: galleryData, error } = await useFetch(
@@ -108,13 +107,15 @@ const { data: galleryData, error } = await useFetch(
     }
   }
 )
-// ===================================================
 
 if (import.meta.server && (error.value || !galleryData.value || !Array.isArray(galleryData.value) || galleryData.value.length === 0)) {
   throw createError({ statusCode: 404, message: 'Галерея не найдена' })
 }
 
 const gallery = computed(() => {
+  if (!galleryData.value || !Array.isArray(galleryData.value) || galleryData.value.length === 0) {
+    return { id: 0, slug: '', title: '', date: '', albumLink: '', photos: [], categories: [] }
+  }
   const item = galleryData.value[0] as any
 
   let photos: any[] = []
