@@ -110,7 +110,7 @@ const { data: galleryData, error } = await useFetch(
 )
 // ===================================================
 
-if (error.value || !galleryData.value || !Array.isArray(galleryData.value) || galleryData.value.length === 0) {
+if (import.meta.server && (error.value || !galleryData.value || !Array.isArray(galleryData.value) || galleryData.value.length === 0)) {
   throw createError({ statusCode: 404, message: 'Галерея не найдена' })
 }
 

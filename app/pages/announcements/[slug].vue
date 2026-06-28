@@ -75,7 +75,7 @@ const { data: articleData, error } = await useFetch(
 )
 // ===================================================
 
-if (error.value || !articleData.value || !Array.isArray(articleData.value) || articleData.value.length === 0) {
+if (import.meta.server && (error.value || !articleData.value || !Array.isArray(articleData.value) || articleData.value.length === 0)) {
   throw createError({ statusCode: 404, message: 'Анонс не найден' })
 }
 

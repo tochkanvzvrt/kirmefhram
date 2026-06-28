@@ -76,7 +76,7 @@ const { data: articleData, error } = await useFetch(
 // ===================================================
 
 // Проверяем: массив не пустой
-if (error.value || !articleData.value || !Array.isArray(articleData.value) || articleData.value.length === 0) {
+if (import.meta.server && (error.value || !articleData.value || !Array.isArray(articleData.value) || articleData.value.length === 0)) {
   throw createError({ statusCode: 404, message: 'Новость не найдена' })
 }
 
@@ -501,6 +501,7 @@ useHead({
 
 /* ======= АДАПТИВ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ ======= */
 @media (max-width: 768px) {
+
   /* Отмена обтекания для выравненных элементов */
   .wp-content :deep(.alignleft),
   .wp-content :deep(.alignright),
@@ -529,6 +530,7 @@ useHead({
 }
 
 @media (max-width: 480px) {
+
   /* На очень узких экранах — 1 колонка */
   .wp-content :deep(.gallery-item) {
     flex: 0 1 100%;
