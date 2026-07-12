@@ -60,16 +60,18 @@ const stripHtml = (html: string): string => {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-const { baseURL } = useApi()
+const config = useRuntimeConfig()
+const wpBase = config.public.wpApi
 
 const { data: articleData, error } = await useFetch(
-  `${baseURL}/wp-json/wp/v2/announcement`,
+  `${wpBase}/wp-json/wp/v2/announcement`,
   {
     params: {
       slug: announcementSlug,
       _embed: true,
       status: 'publish'
-    }
+    },
+    server: true
   }
 )
 

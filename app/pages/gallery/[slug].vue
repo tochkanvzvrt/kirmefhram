@@ -95,16 +95,18 @@ import { decode } from 'html-entities'
 const route = useRoute()
 const gallerySlug = route.params.slug
 
-const { baseURL } = useApi()
+const config = useRuntimeConfig()
+const wpBase = config.public.wpApi
 
 const { data: galleryData, error } = await useFetch(
-  `${baseURL}/wp-json/wp/v2/photogallery`,
+  `${wpBase}/wp-json/wp/v2/photogallery`,
   {
     params: {
       slug: gallerySlug,
       _embed: true,
       status: 'publish'
-    }
+    },
+    server: true
   }
 )
 

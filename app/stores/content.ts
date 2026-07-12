@@ -327,21 +327,27 @@ export const useContentStore = defineStore('content', {
           return
         }
         const dayMap = new Map<string, ScheduleDay>()
+        const weekdays = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота']
+
         for (const post of schedulePosts) {
           const monthCurrent = post.month_current
           if (!monthCurrent || typeof monthCurrent !== 'string') continue
-          const currentDate = new Date(monthCurrent)
-          if (isNaN(currentDate.getTime())) continue
-          const currentYear = currentDate.getFullYear()
-          const currentMonth = currentDate.getMonth()
+
+          // Безопасный парсинг даты (год/месяц/день)
+          const [cy, cmStr] = monthCurrent.split('-')
+          const currentYear = parseInt(cy)
+          const currentMonth = parseInt(cmStr) - 1 // месяц от 0 до 11
+          if (isNaN(currentYear) || isNaN(currentMonth)) continue
           const lastDayCurrent = new Date(currentYear, currentMonth + 1, 0).getDate()
 
           let nextYear = currentYear, nextMonth = currentMonth + 1, lastDayNext = 31, hasNextMonth = false
           if (post.month_next1 && typeof post.month_next1 === 'string') {
-            const nextDate = new Date(post.month_next1)
-            if (!isNaN(nextDate.getTime())) {
-              nextYear = nextDate.getFullYear()
-              nextMonth = nextDate.getMonth()
+            const [ny, nmStr] = post.month_next1.split('-')
+            const parsedNextYear = parseInt(ny)
+            const parsedNextMonth = parseInt(nmStr) - 1
+            if (!isNaN(parsedNextYear) && !isNaN(parsedNextMonth)) {
+              nextYear = parsedNextYear
+              nextMonth = parsedNextMonth
               lastDayNext = new Date(nextYear, nextMonth + 1, 0).getDate()
               hasNextMonth = true
             }
@@ -350,8 +356,10 @@ export const useContentStore = defineStore('content', {
           const addOrUpdateDay = (year: number, month: number, dayNum: number, liturgicalText?: string, servicesText?: string) => {
             if (dayNum < 1) return
             const fullDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`
-            const dayName = new Date(fullDate).toLocaleDateString('ru-RU', { weekday: 'long' })
+            const dayOfWeek = new Date(fullDate).getDay()
+            const dayName = weekdays[dayOfWeek]
             const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1)
+
             let existing = dayMap.get(fullDate)
             if (!existing) {
               existing = { fullDate, date: String(dayNum), day: capitalizedDay, liturgical: '', services: '' }

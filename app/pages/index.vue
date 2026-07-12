@@ -164,7 +164,7 @@
                   <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{
                     news.title }}</h3>
                   <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">{{ stripHtml(news.excerpt || news.content)
-                    }}</p>
+                  }}</p>
                   <NuxtLink :to="getNewsUrl(news)"
                     class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
                     Читать полностью
@@ -305,7 +305,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { Church, ArrowRight, Calendar, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { ArrowRight, Calendar, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import Button from '~/components/ui/Button.vue'
 import Card from '~/components/ui/Card.vue'
 import { useContentStore } from '~/stores/content'
@@ -322,23 +322,44 @@ useSeoMeta({
 
 const store = useContentStore()
 
+// Загружаем основные данные только на сервере
 if (import.meta.server) {
   await store.fetchNews()
   await store.fetchAnnouncements()
   await store.fetchSchedule()
 }
 
+// ==================== БАННЕРЫ ====================
+const config = useRuntimeConfig()
+const { data: bannersData } = await useFetch<Array<any>>(`${config.public.wpApi}/wp-json/wp/v2/banner`, {
+  server: true,   // загрузка только на сервере
+  key: 'banners'  // кешируем результат
+})
+
+// Индекс баннера – хранится в состоянии Nuxt, чтобы сервер и клиент совпадали
+const currentBannerIndex = useState<number>('banner-index', () => 0)
 const bannerImages = ref<string[]>([])
-const currentBannerIndex = ref(0)
 const bannersLoaded = ref(false)
 const bannerLoaded = ref(false)
 
-const scheduleSlider = ref<HTMLElement | null>(null)
-const scheduleSlideIndex = ref(0)
-const newsSlider = ref<HTMLElement | null>(null)
-const newsSlideIndex = ref(0)
-const announcementsSlider = ref<HTMLElement | null>(null)
-const announcementsSlideIndex = ref(0)
+if (bannersData.value) {
+  const images: string[] = []
+  for (const item of bannersData.value) {
+    if (item.banner?.guid) images.push(item.banner.guid)
+    if (item.banner2?.guid) images.push(item.banner2.guid)
+    if (item.banner3?.guid) images.push(item.banner3.guid)
+    if (item.banner4?.guid) images.push(item.banner4.guid)
+    if (item.banner5?.guid) images.push(item.banner5.guid)
+  }
+  if (images.length > 0) {
+    bannerImages.value = images
+    bannersLoaded.value = true
+    // Случайный индекс назначается только на сервере (один раз)
+    if (import.meta.server) {
+      currentBannerIndex.value = Math.floor(Math.random() * images.length)
+    }
+  }
+}
 
 const activeBanner = computed(() => {
   if (!bannersLoaded.value || bannerImages.value.length === 0) return ''
@@ -348,11 +369,19 @@ const activeBanner = computed(() => {
 function onBannerLoad() { bannerLoaded.value = true }
 watch(currentBannerIndex, () => { bannerLoaded.value = false })
 onMounted(() => {
-  // Принудительно запускаем анимацию, если баннер уже загружен
+  // Если баннер уже загружен на сервере – сразу показываем без размытия
   if (bannersLoaded.value) {
     bannerLoaded.value = true
   }
 })
+
+// ==================== СЛАЙДЕРЫ ====================
+const scheduleSlider = ref<HTMLElement | null>(null)
+const scheduleSlideIndex = ref(0)
+const newsSlider = ref<HTMLElement | null>(null)
+const newsSlideIndex = ref(0)
+const announcementsSlider = ref<HTMLElement | null>(null)
+const announcementsSlideIndex = ref(0)
 
 function scrollSchedule(dir: number) {
   if (!scheduleSlider.value) return
@@ -399,27 +428,8 @@ function onAnnouncementsScroll() {
   announcementsSlideIndex.value = Math.round(announcementsSlider.value.scrollLeft / announcementsSlider.value.clientWidth)
 }
 
+// ==================== РОТАЦИЯ БАННЕРОВ ====================
 let rotationTimer: ReturnType<typeof setInterval> | null = null
-
-// Баннеры загружаются на сервере
-const { apiFetch } = useApi()
-const banners = await apiFetch<any[]>('/banner').catch(err => {
-  console.error('fetchBanners error:', err)
-  return []
-})
-const images: string[] = []
-for (const item of banners) {
-  if (item.banner?.guid) images.push(item.banner.guid)
-  if (item.banner2?.guid) images.push(item.banner2.guid)
-  if (item.banner3?.guid) images.push(item.banner3.guid)
-  if (item.banner4?.guid) images.push(item.banner4.guid)
-  if (item.banner5?.guid) images.push(item.banner5.guid)
-}
-if (images.length > 0) {
-  bannerImages.value = images
-  bannersLoaded.value = true
-  currentBannerIndex.value = Math.floor(Math.random() * images.length)
-}
 
 const startRotation = () => {
   rotationTimer = setInterval(() => {
@@ -434,14 +444,21 @@ onMounted(() => {
 })
 onUnmounted(() => { if (rotationTimer) clearInterval(rotationTimer) })
 
+// ==================== ВЫЧИСЛЯЕМЫЕ СВОЙСТВА ====================
 const latestNews = computed(() => {
   const news = store.feedNews || []
-  return [...news].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4).map(item => ({ ...item, title: decode(item.title || '') }))
+  return [...news]
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 4)
+    .map(item => ({ ...item, title: decode(item.title || '') }))
 })
 
 const latestAnnouncements = computed(() => {
   const announcements = store.feedAnnouncements || []
-  return [...announcements].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4).map(item => ({ ...item, title: decode(item.title || '') }))
+  return [...announcements]
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 4)
+    .map(item => ({ ...item, title: decode(item.title || '') }))
 })
 
 const upcomingSchedule = computed(() => {
@@ -449,7 +466,13 @@ const upcomingSchedule = computed(() => {
   const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
   return filled.map(item => {
     const monthNum = parseInt(item.fullDate?.split('-')[1] || '0', 10)
-    return { date: item.date || '', month: monthNames[monthNum - 1] || '', day: item.day || '', liturgical: item.liturgical || '', services: item.services || '' }
+    return {
+      date: item.date || '',
+      month: monthNames[monthNum - 1] || '',
+      day: item.day || '',
+      liturgical: item.liturgical || '',
+      services: item.services || ''
+    }
   })
 })
 
@@ -463,9 +486,15 @@ const getAnnouncementUrl = (announcement: any): string => {
   return `/announcements/${announcement.id}`
 }
 
+// ==================== ФОРМАТИРОВАНИЕ (БЕЗ toLocaleDateString) ====================
+const monthNamesGenitive = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
 const formatDate = (dateStr: string): string => {
   if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+  const date = new Date(dateStr)
+  const day = date.getDate()
+  const month = monthNamesGenitive[date.getMonth()]
+  const year = date.getFullYear()
+  return `${day} ${month} ${year}`
 }
 
 const stripHtml = (html: string): string => {
@@ -473,61 +502,3 @@ const stripHtml = (html: string): string => {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 </script>
-
-<style scoped>
-.schedule-text {
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  line-height: 1.5;
-}
-
-.schedule-text :deep(strong),
-.schedule-text :deep(b) {
-  font-weight: 700 !important;
-}
-
-.schedule-text :deep(em),
-.schedule-text :deep(i) {
-  font-style: italic !important;
-}
-
-.liturgical-day {
-  font-size: 1.125rem;
-  font-weight: 500;
-  margin-bottom: 1rem;
-}
-
-.liturgical-day :deep(p) {
-  margin: 0 0 0.75rem 0;
-}
-
-.liturgical-day :deep(strong),
-.liturgical-day :deep(b) {
-  font-size: 1.25rem;
-  font-weight: 700 !important;
-}
-
-.services-time {
-  font-size: 0.95rem;
-}
-
-.services-time :deep(p) {
-  margin: 0.5rem 0;
-}
-
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-hr {
-  border: none;
-  height: 0.5px;
-  background-color: hsl(var(--border));
-  margin: 0.75rem 0;
-}
-</style>
