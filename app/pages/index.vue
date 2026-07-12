@@ -164,7 +164,7 @@
                   <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{
                     news.title }}</h3>
                   <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">{{ stripHtml(news.excerpt || news.content)
-                  }}</p>
+                    }}</p>
                   <NuxtLink :to="getNewsUrl(news)"
                     class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
                     Читать полностью
@@ -502,3 +502,60 @@ const stripHtml = (html: string): string => {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 </script>
+<style scoped>
+.schedule-text {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  line-height: 1.5;
+}
+
+.schedule-text :deep(strong),
+.schedule-text :deep(b) {
+  font-weight: 700 !important;
+}
+
+.schedule-text :deep(em),
+.schedule-text :deep(i) {
+  font-style: italic !important;
+}
+
+.liturgical-day {
+  font-size: 1.125rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.liturgical-day :deep(p) {
+  margin: 0 0 0.75rem 0;
+}
+
+.liturgical-day :deep(strong),
+.liturgical-day :deep(b) {
+  font-size: 1.25rem;
+  font-weight: 700 !important;
+}
+
+.services-time {
+  font-size: 0.95rem;
+}
+
+.services-time :deep(p) {
+  margin: 0.5rem 0;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+hr {
+  border: none;
+  height: 0.5px;
+  background-color: hsl(var(--border));
+  margin: 0.75rem 0;
+}
+</style>
