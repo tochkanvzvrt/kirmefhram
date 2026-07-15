@@ -4,44 +4,24 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   css: ['~/tailwind.css'],
   modules: ['@pinia/nuxt', '@nuxtjs/tailwindcss'],
+
+  // ================= ГЛОБАЛЬНЫЙ ХУК ОШИБОК РЕНДЕРИНГА =================
+  hooks: {
+    'render:error': (error, { url }) => {
+      console.error('=== SSR RENDER ERROR ===')
+      console.error('URL:', url)
+      console.error('Message:', error.message)
+      console.error('Stack:', error.stack)
+      console.error('Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
+    }
+  },
+
   app: {
     pageTransition: { name: 'page', mode: 'out-in' },
     head: {
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
         { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon.ico' },
-      ],
-      script: [
-        {
-          innerHTML: `
-            document.addEventListener('DOMContentLoaded', function() {
-              document.querySelectorAll('img').forEach(function(img) {
-                const src = img.getAttribute('src');
-                if (!src || img.dataset.retryChecked) return;
-                img.dataset.retryChecked = '1';
-                
-                const timeout = setTimeout(() => {
-                  if (!img.complete || img.naturalWidth === 0) {
-                    img.dataset.retried = '1';
-                    img.src = src + '?retry=' + Date.now();
-                  }
-                }, 3000);
-                
-                img.addEventListener('load', () => clearTimeout(timeout));
-                img.addEventListener('error', () => {
-                  clearTimeout(timeout);
-                  if (!img.dataset.retried) {
-                    img.dataset.retried = '1';
-                    setTimeout(() => {
-                      img.src = src + '?retry=' + Date.now();
-                    }, 1000);
-                  }
-                });
-              });
-            });
-          `,
-          type: 'text/javascript'
-        }
       ]
     }
   },

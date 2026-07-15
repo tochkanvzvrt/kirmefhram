@@ -322,21 +322,23 @@ useSeoMeta({
 
 const store = useContentStore()
 
-// Загружаем основные данные только на сервере
-if (import.meta.server) {
-  await store.fetchNews()
-  await store.fetchAnnouncements()
-  await store.fetchSchedule()
+// ==================== БАННЕРЫ С ЗАЩИТОЙ ====================
+const config = useRuntimeConfig()
+const bannersData = ref<Array<any> | null>(null)
+const bannersError = ref(false)
+
+try {
+  const { data, error } = await useFetch<Array<any>>(`${config.public.wpApi}/wp-json/wp/v2/banner`, {
+    server: true,
+    key: 'banners'
+  })
+  if (error.value) throw error.value
+  bannersData.value = data.value
+} catch (e) {
+  console.error('Ошибка загрузки баннеров:', e)
+  bannersError.value = true
 }
 
-// ==================== БАННЕРЫ ====================
-const config = useRuntimeConfig()
-const { data: bannersData } = await useFetch<Array<any>>(`${config.public.wpApi}/wp-json/wp/v2/banner`, {
-  server: true,   // загрузка только на сервере
-  key: 'banners'  // кешируем результат
-})
-
-// Индекс баннера – хранится в состоянии Nuxt, чтобы сервер и клиент совпадали
 const currentBannerIndex = useState<number>('banner-index', () => 0)
 const bannerImages = ref<string[]>([])
 const bannersLoaded = ref(false)
@@ -354,7 +356,6 @@ if (bannersData.value) {
   if (images.length > 0) {
     bannerImages.value = images
     bannersLoaded.value = true
-    // Случайный индекс назначается только на сервере (один раз)
     if (import.meta.server) {
       currentBannerIndex.value = Math.floor(Math.random() * images.length)
     }
@@ -369,7 +370,6 @@ const activeBanner = computed(() => {
 function onBannerLoad() { bannerLoaded.value = true }
 watch(currentBannerIndex, () => { bannerLoaded.value = false })
 onMounted(() => {
-  // Если баннер уже загружен на сервере – сразу показываем без размытия
   if (bannersLoaded.value) {
     bannerLoaded.value = true
   }
@@ -486,7 +486,7 @@ const getAnnouncementUrl = (announcement: any): string => {
   return `/announcements/${announcement.id}`
 }
 
-// ==================== ФОРМАТИРОВАНИЕ (БЕЗ toLocaleDateString) ====================
+// ==================== ФОРМАТИРОВАНИЕ ====================
 const monthNamesGenitive = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
 const formatDate = (dateStr: string): string => {
   if (!dateStr) return ''
@@ -502,6 +502,7 @@ const stripHtml = (html: string): string => {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 </script>
+
 <style scoped>
 .schedule-text {
   white-space: pre-wrap;
