@@ -9,8 +9,10 @@ import { useContentStore } from '~/stores/content'
 
 if (import.meta.server) {
   const store = useContentStore()
-  await store.fetchAnnouncements()
-  await store.fetchNews()
-  await store.fetchSchedule()
+  await Promise.allSettled([
+    store.fetchAnnouncements(),
+    store.fetchNews(),
+    store.fetchSchedule()
+  ])
 }
 </script>
