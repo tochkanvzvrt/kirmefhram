@@ -164,7 +164,7 @@
                   <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{
                     news.title }}</h3>
                   <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">{{ stripHtml(news.excerpt || news.content)
-                    }}</p>
+                  }}</p>
                   <NuxtLink :to="getNewsUrl(news)"
                     class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
                     Читать полностью
@@ -327,17 +327,16 @@ const config = useRuntimeConfig()
 const bannersData = ref<Array<any> | null>(null)
 const bannersError = ref(false)
 
-try {
-  const { data, error } = await useFetch<Array<any>>(`${config.public.wpApi}/wp-json/wp/v2/banner`, {
-    server: true,
-    key: 'banners'
-  })
-  if (error.value) throw error.value
-  bannersData.value = data.value
-} catch (e) {
-  console.error('Ошибка загрузки баннеров:', e)
-  bannersError.value = true
-}
+const { data: rawBanners } = await useAsyncData('banners', async () => {
+  try {
+    return await $fetch<Array<any>>(`${config.public.wpApi}/wp-json/wp/v2/banner`, { timeout: 10000 })
+  } catch (e) {
+    console.error('Ошибка загрузки баннеров:', e)
+    return []
+  }
+}, { server: true })
+
+bannersData.value = rawBanners.value ?? null
 
 const currentBannerIndex = useState<number>('banner-index', () => 0)
 const bannerImages = ref<string[]>([])
