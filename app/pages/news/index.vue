@@ -70,7 +70,7 @@
         </NuxtLink>
       </div>
 
-      <div v-if="store.totalNewsPages > 1" class="flex justify-center gap-2 mt-10">
+      <div v-if="store.totalNewsPages > 1" class="flex flex-wrap justify-center gap-1 md:gap-2 mt-10">
         <button @click="goToPage(store.currentNewsPage - 1)" :disabled="store.currentNewsPage === 1"
           class="px-4 py-2 rounded-lg bg-muted">←</button>
 

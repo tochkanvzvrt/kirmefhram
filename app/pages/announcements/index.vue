@@ -74,7 +74,7 @@
       </div>
 
       <!-- Умная пагинация -->
-      <div v-if="store.totalAnnouncementPages > 1" class="flex justify-center gap-2 mt-10">
+      <div v-if="store.totalAnnouncementPages > 1" class="flex flex-wrap justify-center gap-1 md:gap-2 mt-10">
         <button @click="goToPage(store.currentAnnouncementPage - 1)" :disabled="store.currentAnnouncementPage === 1"
           class="px-4 py-2 rounded-lg bg-muted">←</button>
 
