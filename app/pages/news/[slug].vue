@@ -60,6 +60,8 @@ const stripHtml = (html: string): string => {
 const config = useRuntimeConfig()
 const wpBase = process.server ? config.wpApiInternal : config.public.wpApi
 
+console.log('=== SSR DEBUG ===', { wpBase, slug: route.params.slug })
+
 const { data: articleData, error } = useFetch(
   `${wpBase}/wp-json/wp/v2/new`,
   {
@@ -71,6 +73,10 @@ const { data: articleData, error } = useFetch(
     server: true
   }
 )
+
+if (import.meta.server) {
+  console.log('=== SSR RESULT ===', { error: error.value, dataLength: articleData.value?.length })
+}
 
 if (import.meta.server && (error.value || !articleData.value || !Array.isArray(articleData.value) || articleData.value.length === 0)) {
   throw createError({ statusCode: 404, message: 'Новость не найдена' })
