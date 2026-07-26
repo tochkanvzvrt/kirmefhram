@@ -84,7 +84,6 @@
         </div>
       </div>
 
-      <!-- Нижняя полоса (копирайт) -->
       <div class="pt-8 border-border border-t">
         <div class="text-muted-foreground text-sm text-center">
           <p>© Кирилло-Мефодиевский храм. Все права защищены.</p>
@@ -99,17 +98,15 @@
 </template>
 
 <script setup lang="ts">
-import { Church, Phone } from 'lucide-vue-next'
+import { Phone } from 'lucide-vue-next'
 
-// ==================== ИСПРАВЛЕНО ====================
 const { baseURL } = useApi()
 
-const { data, pending } = await useFetch<Array<any>>(`${baseURL}/wp-json/wp/v2/details`, {
+const { data, pending } = useFetch<Array<any>>(`${baseURL}/wp-json/wp/v2/details`, {
   key: 'footer-details',
   server: true,
   params: { per_page: 1 }
 })
-// ===================================================
 
 const contact = computed(() => data.value?.[0] || null)
 const workingHours = computed(() => contact.value?.time || '07:00 – 20:00')
@@ -122,7 +119,6 @@ const phoneRaw = computed(() => phone.value.replace(/[^0-9+]/g, ''))
 const usefulLinksList = computed(() => {
   const raw = contact.value?.useful_links || ''
   if (!raw) return []
-
   const lines = raw.split(/\r?\n/).filter(line => line.trim() !== '')
   const links: { label: string; url: string }[] = []
   for (const line of lines) {
@@ -130,12 +126,8 @@ const usefulLinksList = computed(() => {
     if (colonIndex === -1) continue
     const label = line.slice(0, colonIndex).trim()
     let url = line.slice(colonIndex + 1).trim()
-    if (url && !url.startsWith('http')) {
-      url = 'https://' + url
-    }
-    if (label && url) {
-      links.push({ label, url })
-    }
+    if (url && !url.startsWith('http')) url = 'https://' + url
+    if (label && url) links.push({ label, url })
   }
   return links
 })

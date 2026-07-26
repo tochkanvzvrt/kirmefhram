@@ -110,10 +110,15 @@ const scheduleDataForMonth = computed(() => {
 
 const loadData = async () => {
   loading.value = true
-  if (store.schedule.length === 0) {
-    await store.fetchSchedule()
+  try {
+    if (store.schedule.length === 0) {
+      await store.fetchSchedule()
+    }
+  } catch (e) {
+    console.error('Ошибка загрузки расписания:', e)
+  } finally {
+    loading.value = false
   }
-  loading.value = false
 }
 
 onMounted(() => {

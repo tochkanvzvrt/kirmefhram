@@ -26,7 +26,7 @@ export default defineNuxtConfig({
     }
   },
   runtimeConfig: {
-    wpApiInternal: process.env.NUXT_WP_API_INTERNAL || 'https://admin.kirmefhram.ru',
+    wpApiInternal: process.env.NUXT_WP_API_INTERNAL || 'http://wp-admin',
     public: {
       wpApi: process.env.NUXT_PUBLIC_WP_API || 'https://admin.kirmefhram.ru'
     }

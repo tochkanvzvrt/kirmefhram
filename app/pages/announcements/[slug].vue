@@ -63,7 +63,7 @@ const stripHtml = (html: string): string => {
 const config = useRuntimeConfig()
 const wpBase = config.public.wpApi
 
-const { data: articleData, error } = await useFetch(
+const { data: articleData, error } = useFetch(
   `${wpBase}/wp-json/wp/v2/announcement`,
   {
     params: {

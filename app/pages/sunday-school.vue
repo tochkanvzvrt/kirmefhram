@@ -186,48 +186,45 @@ const formatText = (text: string): string => {
 const { apiFetch } = useApi()
 
 // Загружаем описание воскресной школы
-const sundaySchoolData = ref<any>(null)
-try {
-  const data = await apiFetch<any[]>('/sundayschool')
-  if (Array.isArray(data) && data.length > 0) {
-    sundaySchoolData.value = data[0]
-  }
-} catch (err) {
-  console.error('fetchSundaySchool error:', err)
-}
+const { data: sundaySchoolData } = await useAsyncData('sundaySchool', () =>
+  apiFetch<any[]>('/sundayschool').then(data => data?.[0] || null).catch((err) => {
+    console.error('fetchSundaySchool error:', err)
+    return null
+  })
+)
 
 const sundaySchoolText = computed(() => formatText(sundaySchoolData.value?.description || ''))
 const enrollmentText = computed(() => formatText(sundaySchoolData.value?.entry || ''))
 
 // Загружаем новости
-const sundayNews = ref<any[]>([])
-try {
-  sundayNews.value = await apiFetch<any[]>('/new', {
+const { data: sundayNews } = await useAsyncData('sundayNews', () =>
+  apiFetch<any[]>('/new', {
     params: { _embed: true, per_page: 4, categories: SUNDAY_SCHOOL_CATEGORY_ID, orderby: 'date', order: 'desc' }
+  }).catch((err) => {
+    console.error('fetchSundayNews error:', err)
+    return []
   })
-} catch (err) {
-  console.error('fetchSundayNews error:', err)
-}
+)
 
 // Загружаем анонсы
-const sundayAnnouncements = ref<any[]>([])
-try {
-  sundayAnnouncements.value = await apiFetch<any[]>('/announcement', {
+const { data: sundayAnnouncements } = await useAsyncData('sundayAnnouncements', () =>
+  apiFetch<any[]>('/announcement', {
     params: { _embed: true, per_page: 4, categories: SUNDAY_SCHOOL_CATEGORY_ID, orderby: 'date', order: 'desc' }
+  }).catch((err) => {
+    console.error('fetchSundayAnnouncements error:', err)
+    return []
   })
-} catch (err) {
-  console.error('fetchSundayAnnouncements error:', err)
-}
+)
 
 // Загружаем галереи
-const sundayGalleries = ref<any[]>([])
-try {
-  sundayGalleries.value = await apiFetch<any[]>('/photogallery', {
+const { data: sundayGalleries } = await useAsyncData('sundayGalleries', () =>
+  apiFetch<any[]>('/photogallery', {
     params: { per_page: 4, categories: SUNDAY_SCHOOL_CATEGORY_ID, orderby: 'date', order: 'desc' }
+  }).catch((err) => {
+    console.error('fetchSundayGalleries error:', err)
+    return []
   })
-} catch (err) {
-  console.error('fetchSundayGalleries error:', err)
-}
+)
 
 const getNewsUrl = (item: any): string => {
   if (item.slug && item.slug.trim() !== '') return `/news/${item.slug}`

@@ -41,8 +41,7 @@
         <p class="text-muted-foreground text-lg">Анонсов в этой категории пока нет</p>
       </div>
       <div v-else class="gap-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        <NuxtLink v-for="article in filteredAnnouncements" :key="article.id" :to="getArticleUrl(article)"
-          class="block">
+        <NuxtLink v-for="article in filteredAnnouncements" :key="article.id" :to="getArticleUrl(article)" class="block">
           <Card class="group hover:shadow-xl overflow-hidden transition-shadow cursor-pointer h-full flex flex-col">
             <div class="flex justify-center items-center bg-muted aspect-video overflow-hidden">
               <img v-if="article.image" :src="article.image" :alt="article.title"
@@ -86,7 +85,8 @@
           </button>
         </template>
 
-        <button @click="goToPage(store.currentAnnouncementPage + 1)" :disabled="store.currentAnnouncementPage === store.totalAnnouncementPages"
+        <button @click="goToPage(store.currentAnnouncementPage + 1)"
+          :disabled="store.currentAnnouncementPage === store.totalAnnouncementPages"
           class="px-4 py-2 rounded-lg bg-muted">→</button>
       </div>
     </section>
@@ -113,8 +113,12 @@ const initialCategory = categoryFromUrl && !isNaN(Number(categoryFromUrl)) ? Num
 const activeCategoryId = ref<number | null>(initialCategory)
 
 // Загружаем все категории (один раз)
-if (store.allAnnouncementCategoriesList.length === 0) {
-  await store.fetchAllAnnouncementCategories()
+try {
+  if (store.allAnnouncementCategoriesList.length === 0) {
+    await store.fetchAllAnnouncementCategories()
+  }
+} catch (err) {
+  console.error('Ошибка загрузки категорий:', err)
 }
 
 const categoriesList = computed(() => [

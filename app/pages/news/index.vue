@@ -109,8 +109,12 @@ const initialCategory = categoryFromUrl && !isNaN(Number(categoryFromUrl)) ? Num
 const activeCategoryId = ref<number | null>(initialCategory)
 
 // Загружаем все категории (один раз)
-if (store.allNewsCategoriesList.length === 0) {
-  await store.fetchAllNewsCategories()
+try {
+  if (store.allNewsCategoriesList.length === 0) {
+    await store.fetchAllNewsCategories()
+  }
+} catch (err) {
+  console.error('Ошибка загрузки категорий:', err)
 }
 
 const categoriesList = computed(() => [

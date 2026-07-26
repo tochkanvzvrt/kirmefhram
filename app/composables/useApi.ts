@@ -9,7 +9,7 @@ export const useApi = () => {
       method?: string
       body?: any
     } = {}
-  ): Promise<T> => {
+  ): Promise<T | null> => {
     try {
       const { params, method, body } = options
       return await $fetch<T>(`${baseURL}/wp-json/wp/v2${endpoint}`, {
@@ -19,9 +19,9 @@ export const useApi = () => {
       })
     } catch (error: any) {
       console.error(`Ошибка API ${endpoint}:`, error?.message || error)
-      throw error
+      return null
     }
   }
 
   return { apiFetch, baseURL }
-}  
+}

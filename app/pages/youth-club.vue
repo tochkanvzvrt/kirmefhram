@@ -191,7 +191,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Users, Heart, Calendar, ArrowRight } from 'lucide-vue-next'
+import { Users, Calendar, ArrowRight } from 'lucide-vue-next'
 import Card from '~/components/ui/Card.vue'
 import { decode } from 'html-entities'
 
@@ -204,50 +204,46 @@ const formatText = (text: string): string => {
 
 // Загружаем данные об описании кружка
 const { apiFetch } = useApi()
-const youthData = ref<any>(null)
-
-try {
-  const data = await apiFetch<any[]>('/youthclub')
-  if (Array.isArray(data) && data.length > 0) {
-    youthData.value = data[0]
-  }
-} catch (err) {
-  console.error('fetchYouthClub error:', err)
-}
+const { data: youthData } = await useAsyncData('youthClub', () =>
+  apiFetch<any[]>('/youthclub').then(data => data?.[0] || null).catch((err) => {
+    console.error('fetchYouthClub error:', err)
+    return null
+  })
+)
 
 const youthClubText = computed(() => formatText(youthData.value?.description || ''))
 const joinText = computed(() => formatText(youthData.value?.entry || ''))
 const loading = computed(() => false)
 
 // Загружаем новости
-const youthNews = ref<any[]>([])
-try {
-  youthNews.value = await apiFetch<any[]>('/new', {
+const { data: youthNews } = await useAsyncData('youthNews', () =>
+  apiFetch<any[]>('/new', {
     params: { _embed: true, per_page: 4, categories: YOUTH_CATEGORY_ID, orderby: 'date', order: 'desc' }
+  }).catch((err) => {
+    console.error('fetchYouthNews error:', err)
+    return []
   })
-} catch (err) {
-  console.error('fetchYouthNews error:', err)
-}
+)
 
 // Загружаем анонсы
-const youthAnnouncements = ref<any[]>([])
-try {
-  youthAnnouncements.value = await apiFetch<any[]>('/announcement', {
+const { data: youthAnnouncements } = await useAsyncData('youthAnnouncements', () =>
+  apiFetch<any[]>('/announcement', {
     params: { _embed: true, per_page: 4, categories: YOUTH_CATEGORY_ID, orderby: 'date', order: 'desc' }
+  }).catch((err) => {
+    console.error('fetchYouthAnnouncements error:', err)
+    return []
   })
-} catch (err) {
-  console.error('fetchYouthAnnouncements error:', err)
-}
+)
 
 // Загружаем галереи
-const youthGalleries = ref<any[]>([])
-try {
-  youthGalleries.value = await apiFetch<any[]>('/photogallery', {
+const { data: youthGalleries } = await useAsyncData('youthGalleries', () =>
+  apiFetch<any[]>('/photogallery', {
     params: { per_page: 4, categories: YOUTH_CATEGORY_ID, orderby: 'date', order: 'desc' }
+  }).catch((err) => {
+    console.error('fetchYouthGalleries error:', err)
+    return []
   })
-} catch (err) {
-  console.error('fetchYouthGalleries error:', err)
-}
+)
 
 const getNewsUrl = (item: any): string => {
   if (item.slug && item.slug.trim() !== '') return `/news/${item.slug}`

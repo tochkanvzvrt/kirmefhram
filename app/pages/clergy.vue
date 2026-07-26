@@ -64,7 +64,7 @@ interface ClergyMember {
 // ==================== ИСПРАВЛЕНО: используем useApi ====================
 const { baseURL } = useApi()
 
-const { data, pending, error } = await useFetch<Array<any>>(`${baseURL}/wp-json/wp/v2/clergy`, {
+const { data, pending, error } = useFetch<Array<any>>(`${baseURL}/wp-json/wp/v2/clergy`, {
   key: 'clergy',
   server: true,
   params: {

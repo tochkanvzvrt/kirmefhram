@@ -126,7 +126,7 @@ import Card from '~/components/ui/Card.vue'
 // ==================== ИСПРАВЛЕНО: используем useApi ====================
 const { baseURL } = useApi()
 
-const { data, pending, error } = await useFetch<Array<any>>(`${baseURL}/wp-json/wp/v2/details`, {
+const { data, pending, error } = useFetch<Array<any>>(`${baseURL}/wp-json/wp/v2/details`, {
   key: 'contacts',
   server: true,
   params: { per_page: 1 }
@@ -140,7 +140,7 @@ const phoneRaw = computed(() => phone.value.replace(/[^0-9+]/g, ''))
 const email = computed(() => contact.value?.mail || 'info@kirmef.ru')
 const telegram = computed(() => contact.value?.telegram || '')
 const vk = computed(() => contact.value?.vk || '')
-const max = computed(()=> contact.value?.max || '')
+const max = computed(() => contact.value?.max || '')
 const workingHours = computed(() => contact.value?.time || '07:00 – 20:00')
 const parishDetails = computed(() => contact.value?.parish_details || '<p>Нет данных</p>')
 

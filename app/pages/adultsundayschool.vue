@@ -187,42 +187,45 @@ const formatText = (text: string): string => {
 const { apiFetch } = useApi()
 
 // Загружаем описание
-const schoolData = ref<any>(null)
-try {
-  const data = await apiFetch<any[]>('/adultsundayschool')
-  if (Array.isArray(data) && data.length > 0) {
-    schoolData.value = data[0]
-  }
-} catch (err) {
-  console.error('fetchSundaySchool error:', err)
-}
+const { data: schoolData } = await useAsyncData('adultSundaySchool', () =>
+  apiFetch<any[]>('/adultsundayschool').then(data => data?.[0] || null).catch((err) => {
+    console.error('fetchAdultSundaySchool error:', err)
+    return null
+  })
+)
 
 const sundaySchoolText = computed(() => formatText(schoolData.value?.description || ''))
 const enrollmentText = computed(() => formatText(schoolData.value?.entry || ''))
 
 // Загружаем новости
-const adultNews = ref<any[]>([])
-try {
-  adultNews.value = await apiFetch<any[]>('/new', {
+const { data: adultNews } = await useAsyncData('adultNews', () =>
+  apiFetch<any[]>('/new', {
     params: { _embed: true, per_page: 4, categories: ADULT_SUNDAY_SCHOOL_CATEGORY_ID, orderby: 'date', order: 'desc' }
+  }).catch((err) => {
+    console.error('fetchAdultNews error:', err)
+    return []
   })
-} catch (err) { console.error('fetchAdultNews error:', err) }
+)
 
 // Загружаем анонсы
-const adultAnnouncements = ref<any[]>([])
-try {
-  adultAnnouncements.value = await apiFetch<any[]>('/announcement', {
+const { data: adultAnnouncements } = await useAsyncData('adultAnnouncements', () =>
+  apiFetch<any[]>('/announcement', {
     params: { _embed: true, per_page: 4, categories: ADULT_SUNDAY_SCHOOL_CATEGORY_ID, orderby: 'date', order: 'desc' }
+  }).catch((err) => {
+    console.error('fetchAdultAnnouncements error:', err)
+    return []
   })
-} catch (err) { console.error('fetchAdultAnnouncements error:', err) }
+)
 
 // Загружаем галереи
-const adultGalleries = ref<any[]>([])
-try {
-  adultGalleries.value = await apiFetch<any[]>('/photogallery', {
+const { data: adultGalleries } = await useAsyncData('adultGalleries', () =>
+  apiFetch<any[]>('/photogallery', {
     params: { per_page: 4, categories: ADULT_SUNDAY_SCHOOL_CATEGORY_ID, orderby: 'date', order: 'desc' }
+  }).catch((err) => {
+    console.error('fetchAdultGalleries error:', err)
+    return []
   })
-} catch (err) { console.error('fetchAdultGalleries error:', err) }
+)
 
 const getNewsUrl = (item: any): string => {
   if (item.slug && item.slug.trim() !== '') return `/news/${item.slug}`

@@ -33,7 +33,7 @@ import { Church } from 'lucide-vue-next'
 const config = useRuntimeConfig()
 const wpBase = config.public.wpApi
 
-const { data, pending, error } = await useFetch<Array<any>>(`${wpBase}/wp-json/wp/v2/about`, {
+const { data, pending, error } = useFetch<Array<any>>(`${wpBase}/wp-json/wp/v2/about`, {
   key: 'about-history',
   server: true,
   params: { per_page: 1 }
