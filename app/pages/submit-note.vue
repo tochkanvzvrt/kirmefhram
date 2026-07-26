@@ -14,8 +14,18 @@
 
     <section class="mx-auto px-4 lg:px-8 py-16 container">
       <div class="mx-auto max-w-3xl">
-        <Card class="p-8">
+        <!-- Виджет -->
+        <Card v-if="!widgetError" class="p-8">
           <div id="vonmi-widget" data-id="7cc3b649bd4c30816c55d065261b65dd"></div>
+        </Card>
+
+        <!-- Ошибка загрузки виджета -->
+        <Card v-else class="p-8 text-center">
+          <p class="text-lg mb-4">Виджет подачи записок временно недоступен</p>
+          <button @click="reloadPage"
+            class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+            Обновить страницу
+          </button>
         </Card>
 
         <div class="mt-8 text-muted-foreground text-sm text-center">
@@ -30,16 +40,32 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { FileText } from 'lucide-vue-next'
 import Card from '~/components/ui/Card.vue'
 
+const widgetError = ref(false)
+
+function reloadPage() {
+  location.reload()
+}
+
 onMounted(() => {
-  const oldScript = document.querySelector('script[src="https://cdn.vonmi.org/widget/vonmi-x.js"]')
-  if (oldScript) oldScript.remove()
-  const script = document.createElement('script')
-  script.src = 'https://cdn.vonmi.org/widget/vonmi-x.js'
-  script.async = true
-  document.body.appendChild(script)
+  try {
+    const oldScript = document.querySelector('script[src="https://cdn.vonmi.org/widget/vonmi-x.js"]')
+    if (oldScript) oldScript.remove()
+
+    const script = document.createElement('script')
+    script.src = 'https://cdn.vonmi.org/widget/vonmi-x.js'
+    script.async = true
+
+    script.onerror = () => {
+      widgetError.value = true
+    }
+
+    document.body.appendChild(script)
+  } catch (e) {
+    widgetError.value = true
+  }
 })
 </script>

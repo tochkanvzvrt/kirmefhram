@@ -24,11 +24,22 @@
           </p>
         </div>
 
-        <div class="mb-12">
+        <!-- Виджет -->
+        <div v-if="!widgetError" class="mb-12">
           <Card class="p-4 md:p-7">
             <div id="vonmi-widget" data-id="13f1c69585895cd1f25f4709e279aa12"></div>
           </Card>
         </div>
+
+        <!-- Ошибка загрузки виджета -->
+        <Card v-else class="p-8 text-center">
+          <p class="text-lg mb-4">Виджет пожертвований временно недоступен</p>
+          <button @click="reloadPage"
+            class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+            Обновить страницу
+          </button>
+        </Card>
+
         <div class="mt-12 text-center">
           <p class="mb-2 font-serif text-primary text-xl">Спаси Господи!</p>
         </div>
@@ -38,17 +49,32 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { Heart } from 'lucide-vue-next'
 import Card from '~/components/ui/Card.vue'
 
-onMounted(() => {
-  const oldScript = document.querySelector('script[src="https://cdn.vonmi.org/widget/vonmi-donation.js"]')
-  if (oldScript) oldScript.remove()
+const widgetError = ref(false)
 
-  const script = document.createElement('script')
-  script.src = 'https://cdn.vonmi.org/widget/vonmi-donation.js'
-  script.async = true
-  document.body.appendChild(script)
+function reloadPage() {
+  location.reload()
+}
+
+onMounted(() => {
+  try {
+    const oldScript = document.querySelector('script[src="https://cdn.vonmi.org/widget/vonmi-donation.js"]')
+    if (oldScript) oldScript.remove()
+
+    const script = document.createElement('script')
+    script.src = 'https://cdn.vonmi.org/widget/vonmi-donation.js'
+    script.async = true
+
+    script.onerror = () => {
+      widgetError.value = true
+    }
+
+    document.body.appendChild(script)
+  } catch (e) {
+    widgetError.value = true
+  }
 })
 </script>
