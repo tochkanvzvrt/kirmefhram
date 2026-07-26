@@ -60,23 +60,16 @@ const stripHtml = (html: string): string => {
 const config = useRuntimeConfig()
 const wpBase = process.server ? config.wpApiInternal : config.public.wpApi
 
-console.log('=== SSR DEBUG ===', { wpBase, slug: route.params.slug })
-
-const { data: articleData, error } = useFetch(
-  `${wpBase}/wp-json/wp/v2/new`,
-  {
-    params: {
-      slug: newsSlug,
-      _embed: true,
-      status: 'publish'
-    },
-    server: true
+const { data: articleData, error } = await useAsyncData(`news-${newsSlug}`, async () => {
+  try {
+    return await $fetch(`${wpBase}/wp-json/wp/v2/new`, {
+      params: { slug: newsSlug, _embed: true, status: 'publish' }
+    })
+  } catch (e) {
+    console.error('News fetch error:', e)
+    return []
   }
-)
-
-if (import.meta.server) {
-  console.log('=== SSR RESULT ===', { error: error.value, dataLength: articleData.value?.length })
-}
+})
 
 if (import.meta.server && (error.value || !articleData.value || !Array.isArray(articleData.value) || articleData.value.length === 0)) {
   throw createError({ statusCode: 404, message: 'Новость не найдена' })
@@ -95,9 +88,7 @@ const article = computed(() => {
     content: item.content?.rendered || '',
     date: item.date || '',
     categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
-      id: term.id,
-      name: term.name,
-      slug: term.slug,
+      id: term.id, name: term.name, slug: term.slug,
     })) || [],
     image: item._embedded?.['wp:featuredmedia']?.[0]?.source_url || null,
   }
@@ -106,11 +97,7 @@ const article = computed(() => {
 const formatDate = (dateStr: string) => {
   if (!dateStr) return ''
   const date = new Date(dateStr)
-  return date.toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 const fullUrl = computed(() => {
@@ -124,30 +111,17 @@ function openLightbox(src: string) {
   lightboxImage.value = src
   document.body.style.overflow = 'hidden'
 }
-
-function closeLightbox() {
-  lightboxImage.value = null
-  document.body.style.overflow = ''
-}
-
-function handleKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape' && lightboxImage.value) closeLightbox()
-}
+function closeLightbox() { lightboxImage.value = null; document.body.style.overflow = '' }
+function handleKeydown(e: KeyboardEvent) { if (e.key === 'Escape' && lightboxImage.value) closeLightbox() }
 
 onMounted(() => {
   document.querySelector('.wp-content')?.addEventListener('click', (e) => {
     const target = e.target as HTMLElement
-    if (target.tagName === 'IMG') {
-      const src = target.getAttribute('src')
-      if (src) openLightbox(src)
-    }
+    if (target.tagName === 'IMG') { const src = target.getAttribute('src'); if (src) openLightbox(src) }
   })
   window.addEventListener('keydown', handleKeydown)
 })
-
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeydown)
-})
+onUnmounted(() => { window.removeEventListener('keydown', handleKeydown) })
 
 useHead({
   title: article.value.title,
@@ -163,7 +137,6 @@ useHead({
 </script>
 
 <style scoped>
-/* все стили остаются без изменений */
 .wp-content {
   font-size: 1.125rem;
   line-height: 1.7;

@@ -60,17 +60,16 @@ const stripHtml = (html: string): string => {
 const config = useRuntimeConfig()
 const wpBase = process.server ? config.wpApiInternal : config.public.wpApi
 
-const { data: articleData, error } = useFetch(
-  `${wpBase}/wp-json/wp/v2/announcement`,
-  {
-    params: {
-      slug: announcementSlug,
-      _embed: true,
-      status: 'publish'
-    },
-    server: true
+const { data: articleData, error } = await useAsyncData(`announcement-${announcementSlug}`, async () => {
+  try {
+    return await $fetch(`${wpBase}/wp-json/wp/v2/announcement`, {
+      params: { slug: announcementSlug, _embed: true, status: 'publish' }
+    })
+  } catch (e) {
+    console.error('Announcement fetch error:', e)
+    return []
   }
-)
+})
 
 if (import.meta.server && (error.value || !articleData.value || !Array.isArray(articleData.value) || articleData.value.length === 0)) {
   throw createError({ statusCode: 404, message: 'Анонс не найден' })
@@ -89,9 +88,7 @@ const article = computed(() => {
     content: item.content?.rendered || '',
     date: item.date || '',
     categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
-      id: term.id,
-      name: term.name,
-      slug: term.slug,
+      id: term.id, name: term.name, slug: term.slug,
     })) || [],
     image: item._embedded?.['wp:featuredmedia']?.[0]?.source_url || null,
   }
@@ -99,11 +96,7 @@ const article = computed(() => {
 
 const formatDate = (dateStr: string) => {
   if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  return new Date(dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 const fullUrl = computed(() => {
@@ -113,34 +106,18 @@ const fullUrl = computed(() => {
 
 const lightboxImage = ref<string | null>(null)
 
-function openLightbox(src: string) {
-  lightboxImage.value = src
-  document.body.style.overflow = 'hidden'
-}
-
-function closeLightbox() {
-  lightboxImage.value = null
-  document.body.style.overflow = ''
-}
-
-function handleKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape' && lightboxImage.value) closeLightbox()
-}
+function openLightbox(src: string) { lightboxImage.value = src; document.body.style.overflow = 'hidden' }
+function closeLightbox() { lightboxImage.value = null; document.body.style.overflow = '' }
+function handleKeydown(e: KeyboardEvent) { if (e.key === 'Escape' && lightboxImage.value) closeLightbox() }
 
 onMounted(() => {
   document.querySelector('.wp-content')?.addEventListener('click', (e) => {
     const target = e.target as HTMLElement
-    if (target.tagName === 'IMG') {
-      const src = target.getAttribute('src')
-      if (src) openLightbox(src)
-    }
+    if (target.tagName === 'IMG') { const src = target.getAttribute('src'); if (src) openLightbox(src) }
   })
   window.addEventListener('keydown', handleKeydown)
 })
-
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeydown)
-})
+onUnmounted(() => { window.removeEventListener('keydown', handleKeydown) })
 
 useHead({
   title: article.value.title,

@@ -97,17 +97,17 @@ const gallerySlug = route.params.slug
 
 const config = useRuntimeConfig()
 const wpBase = process.server ? config.wpApiInternal : config.public.wpApi
-const { data: galleryData, error } = useFetch(
-  `${wpBase}/wp-json/wp/v2/photogallery`,
-  {
-    params: {
-      slug: gallerySlug,
-      _embed: true,
-      status: 'publish'
-    },
-    server: true
+
+const { data: galleryData, error } = await useAsyncData(`gallery-${gallerySlug}`, async () => {
+  try {
+    return await $fetch(`${wpBase}/wp-json/wp/v2/photogallery`, {
+      params: { slug: gallerySlug, _embed: true, status: 'publish' }
+    })
+  } catch (e) {
+    console.error('Gallery fetch error:', e)
+    return []
   }
-)
+})
 
 if (import.meta.server && (error.value || !galleryData.value || !Array.isArray(galleryData.value) || galleryData.value.length === 0)) {
   throw createError({ statusCode: 404, message: 'Галерея не найдена' })
