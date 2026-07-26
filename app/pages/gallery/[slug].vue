@@ -96,8 +96,7 @@ const route = useRoute()
 const gallerySlug = route.params.slug
 
 const config = useRuntimeConfig()
-const wpBase = import.meta.server ? config.wpApiInternal : config.public.wpApi
-
+const wpBase = process.server ? config.wpApiInternal : config.public.wpApi
 const { data: galleryData, error } = useFetch(
   `${wpBase}/wp-json/wp/v2/photogallery`,
   {

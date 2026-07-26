@@ -58,7 +58,7 @@ const stripHtml = (html: string): string => {
 }
 
 const config = useRuntimeConfig()
-const wpBase = import.meta.server ? config.wpApiInternal : config.public.wpApi
+const wpBase = process.server ? config.wpApiInternal : config.public.wpApi
 
 const { data: articleData, error } = useFetch(
   `${wpBase}/wp-json/wp/v2/announcement`,
