@@ -3,7 +3,6 @@
     <!-- Hero с превью-фото или градиентом -->
     <section class="relative flex justify-center items-center py-20 text-white overflow-hidden"
       :class="article.image ? '' : 'bg-gradient-to-br from-primary to-primary/80'">
-      <!-- Затемнённое превью-фото -->
       <img v-if="article.image" :src="article.image" :alt="article.title"
         class="absolute inset-0 w-full h-full object-cover" />
       <div class="absolute inset-0" :class="article.image ? 'bg-black/60' : ''"></div>
@@ -21,10 +20,9 @@
       </div>
     </section>
 
-    <!-- Контент анонса (с обычной галереей WordPress) -->
+    <!-- Контент анонса -->
     <section class="mx-auto px-4 lg:px-8 py-16 max-w-4xl container">
       <div v-html="article.content" class="wp-content"></div>
-
       <div class="mt-12 pt-8 border-border border-t">
         <NuxtLink to="/announcements"
           class="inline-flex items-center gap-2 text-primary hover:underline transition-colors">
@@ -38,9 +36,8 @@
     <Teleport to="body">
       <div v-if="lightboxImage" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
         @click="closeLightbox">
-        <button class="absolute top-4 right-4 text-white text-3xl hover:opacity-70 transition" @click="closeLightbox">
-          ✕
-        </button>
+        <button class="absolute top-4 right-4 text-white text-3xl hover:opacity-70 transition"
+          @click="closeLightbox">✕</button>
         <img :src="lightboxImage" class="max-w-full max-h-full object-contain rounded-lg" @click.stop />
       </div>
     </Teleport>
@@ -61,7 +58,7 @@ const stripHtml = (html: string): string => {
 }
 
 const config = useRuntimeConfig()
-const wpBase = config.public.wpApi
+const wpBase = import.meta.server ? config.wpApiInternal : config.public.wpApi
 
 const { data: articleData, error } = useFetch(
   `${wpBase}/wp-json/wp/v2/announcement`,
@@ -127,9 +124,7 @@ function closeLightbox() {
 }
 
 function handleKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape' && lightboxImage.value) {
-    closeLightbox()
-  }
+  if (e.key === 'Escape' && lightboxImage.value) closeLightbox()
 }
 
 onMounted(() => {
@@ -161,7 +156,6 @@ useHead({
 </script>
 
 <style scoped>
-/* ======= Базовые стили контента ======= */
 .wp-content {
   font-size: 1.125rem;
   line-height: 1.7;
@@ -460,6 +454,19 @@ useHead({
 }
 
 @media (max-width: 768px) {
+  .wp-content :deep(.wp-block-gallery) {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+    gap: 12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .wp-content :deep(.wp-block-gallery) {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 768px) {
 
   .wp-content :deep(.alignleft),
   .wp-content :deep(.alignright),
@@ -480,15 +487,14 @@ useHead({
     box-sizing: border-box;
   }
 
-  .wp-content :deep(.wp-block-gallery) {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
-    gap: 12px !important;
+  .wp-content :deep(.gallery-item) {
+    flex: 0 1 calc(50% - 0.5rem);
   }
 }
 
 @media (max-width: 480px) {
-  .wp-content :deep(.wp-block-gallery) {
-    grid-template-columns: 1fr !important;
+  .wp-content :deep(.gallery-item) {
+    flex: 0 1 100%;
   }
 }
 </style>
