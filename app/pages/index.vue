@@ -164,7 +164,7 @@
                   <h3 class="mb-3 font-serif group-hover:text-primary text-xl line-clamp-2 transition-colors">{{
                     news.title }}</h3>
                   <p class="flex-1 mb-4 text-muted-foreground line-clamp-3">{{ stripHtml(news.excerpt || news.content)
-                  }}</p>
+                    }}</p>
                   <NuxtLink :to="getNewsUrl(news)"
                     class="inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline">
                     Читать полностью
@@ -310,6 +310,7 @@ import Button from '~/components/ui/Button.vue'
 import Card from '~/components/ui/Card.vue'
 import { useContentStore } from '~/stores/content'
 import { decode } from 'html-entities'
+import { toArray } from '../composables/useSafeArray'
 
 useSeoMeta({
   title: 'Кирилло-Мефодиевский храм Балашихи | Официальный сайт',
@@ -322,14 +323,17 @@ useSeoMeta({
 
 const store = useContentStore()
 
-// ==================== БАННЕРЫ С ЗАЩИТОЙ ====================
 const config = useRuntimeConfig()
 const bannersData = ref<Array<any> | null>(null)
 const bannersError = ref(false)
 
 const { data: rawBanners } = await useAsyncData('banners', async () => {
   try {
-    return await $fetch<Array<any>>(`${config.public.wpApi}/wp-json/wp/v2/banner`, { timeout: 10000 })
+    return await $fetch<Array<any>>(`${config.public.wpApi}/wp-json/wp/v2/banner`, {
+      timeout: 5000,
+      retry: 1,
+      retryDelay: 300,
+    })
   } catch (e) {
     console.error('Ошибка загрузки баннеров:', e)
     return []
@@ -374,7 +378,6 @@ onMounted(() => {
   }
 })
 
-// ==================== СЛАЙДЕРЫ ====================
 const scheduleSlider = ref<HTMLElement | null>(null)
 const scheduleSlideIndex = ref(0)
 const newsSlider = ref<HTMLElement | null>(null)
@@ -427,7 +430,6 @@ function onAnnouncementsScroll() {
   announcementsSlideIndex.value = Math.round(announcementsSlider.value.scrollLeft / announcementsSlider.value.clientWidth)
 }
 
-// ==================== РОТАЦИЯ БАННЕРОВ ====================
 let rotationTimer: ReturnType<typeof setInterval> | null = null
 
 const startRotation = () => {
@@ -443,7 +445,6 @@ onMounted(() => {
 })
 onUnmounted(() => { if (rotationTimer) clearInterval(rotationTimer) })
 
-// ==================== ВЫЧИСЛЯЕМЫЕ СВОЙСТВА ====================
 const latestNews = computed(() => {
   const news = store.feedNews || []
   return [...news]
@@ -485,7 +486,6 @@ const getAnnouncementUrl = (announcement: any): string => {
   return `/announcements/${announcement.id}`
 }
 
-// ==================== ФОРМАТИРОВАНИЕ ====================
 const monthNamesGenitive = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
 const formatDate = (dateStr: string): string => {
   if (!dateStr) return ''

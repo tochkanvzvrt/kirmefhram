@@ -34,7 +34,7 @@
                 <p class="text-muted-foreground">Загрузка галерей...</p>
             </div>
             <div v-else-if="error" class="py-16 text-center text-destructive">
-                <p>Ошибка загрузки галерей. Попробуйте позже.</p>
+                <p>Галереи временно недоступны. Попробуйте обновить страницу позже.</p>
             </div>
             <div v-else-if="filteredGalleries.length === 0" class="py-16 text-center">
                 <p class="text-muted-foreground text-lg">Галерей в этой категории пока нет</p>
@@ -95,7 +95,7 @@ import Badge from '~/components/ui/Badge.vue'
 import { decode } from 'html-entities'
 
 const route = useRoute()
-const { apiFetch, baseURL } = useApi()
+const { apiFetch, apiFetchRaw } = useApi()
 
 const loading = ref(false)
 const error = ref(false)
@@ -111,25 +111,14 @@ const categoryFromUrl = route.query.category
 const initialCategory = categoryFromUrl && !isNaN(Number(categoryFromUrl)) ? Number(categoryFromUrl) : null
 const activeCategoryId = ref<number | null>(initialCategory)
 
-// Загружаем категории через useAsyncData
 const { data: categoriesData } = await useAsyncData('galleryCategories', () =>
-    apiFetch<any[]>('/categories', {
-        params: { per_page: 100, orderby: 'name', order: 'asc' }
-    }).then(data => {
-        if (Array.isArray(data)) {
-            return data.map((cat: any) => ({
-                id: cat.id, name: cat.name, slug: cat.slug,
-            }))
-        }
-        return []
-    }).catch((err) => {
-        console.error('Ошибка загрузки категорий:', err)
-        return []
-    })
+    apiFetch<any[]>('/categories', { params: { per_page: 100, orderby: 'name', order: 'asc' } })
 )
 
-if (categoriesData.value) {
-    allCategoriesList.value = categoriesData.value
+if (Array.isArray(categoriesData.value)) {
+    allCategoriesList.value = categoriesData.value.map((cat: any) => ({
+        id: cat.id, name: cat.name, slug: cat.slug,
+    }))
 }
 
 const categoriesList = computed(() => [
@@ -144,128 +133,58 @@ const getGalleryUrl = (gallery: any): string => {
     return `/gallery/${gallery.id}`
 }
 
-const { data: galleriesData } = await useAsyncData('galleries', async () => {
-    try {
-        const params: any = {
-            _embed: true, per_page: perPage, page: 1, orderby: 'date', order: 'desc'
-        }
-        if (activeCategoryId.value) params.categories = activeCategoryId.value
-
-        const response = await $fetch.raw(`${baseURL}/wp-json/wp/v2/photogallery`, { params })
-        const data = response._data
-        return {
-            items: Array.isArray(data) ? data.map((item: any) => {
-                let coverImage = item.photo?.guid || null
-                if (coverImage) coverImage = coverImage.replace(/\\\\/g, '\\')
-                return {
-                    id: item.id,
-                    slug: item.slug || '',
-                    title: decode(item.title?.rendered || item.albumname || 'Без названия'),
-                    date: item.date || '',
-                    image: coverImage,
-                    albumLink: item.albumlink || '',
-                    photosCount: Array.isArray(item.gallery_photos) ? item.gallery_photos.length : 0,
-                    categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
-                        id: term.id, name: term.name, slug: term.slug,
-                    })) || [],
-                }
-            }) : [],
-            totalPages: parseInt(response.headers?.get('x-wp-totalpages') || '0'),
-            totalItems: parseInt(response.headers?.get('x-wp-total') || '0')
-        }
-    } catch (err) {
-        console.error('Ошибка загрузки галерей:', err)
-        return { items: [], totalPages: 0, totalItems: 0 }
+const mapGalleryItem = (item: any) => {
+    let coverImage = item.photo?.guid || null
+    if (coverImage) coverImage = coverImage.replace(/\\\\/g, '\\')
+    return {
+        id: item.id,
+        slug: item.slug || '',
+        title: decode(item.title?.rendered || item.albumname || 'Без названия'),
+        date: item.date || '',
+        image: coverImage,
+        albumLink: item.albumlink || '',
+        photosCount: Array.isArray(item.gallery_photos) ? item.gallery_photos.length : 0,
+        categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
+            id: term.id, name: term.name, slug: term.slug,
+        })) || [],
     }
-}, { server: true })
-
-if (galleriesData.value) {
-    galleries.value = galleriesData.value.items
-    totalPages.value = galleriesData.value.totalPages
-    totalItems.value = galleriesData.value.totalItems
 }
+
+async function loadGalleries(page: number, categoryId: number | null) {
+    loading.value = true
+    error.value = false
+    const params: any = { _embed: true, per_page: perPage, page, orderby: 'date', order: 'desc' }
+    if (categoryId) params.categories = categoryId
+
+    const response = await apiFetchRaw('/photogallery', { params })
+    if (!response) {
+        error.value = true
+        loading.value = false
+        return
+    }
+    const data = response._data
+    galleries.value = Array.isArray(data) ? data.map(mapGalleryItem) : []
+    const tp = response.headers?.get('x-wp-totalpages')
+    if (tp) totalPages.value = parseInt(tp)
+    const ti = response.headers?.get('x-wp-total')
+    if (ti) totalItems.value = parseInt(ti)
+    currentPage.value = page
+    loading.value = false
+}
+
+await loadGalleries(1, activeCategoryId.value)
 
 const filteredGalleries = computed(() => galleries.value)
 
 async function selectCategory(catId: number | null) {
     activeCategoryId.value = catId
-    loading.value = true
-    error.value = false
-    try {
-        const params: any = {
-            _embed: true, per_page: perPage, page: 1, orderby: 'date', order: 'desc'
-        }
-        if (catId) params.categories = catId
-
-        const response = await $fetch.raw(`${baseURL}/wp-json/wp/v2/photogallery`, { params })
-        const data = response._data
-        if (Array.isArray(data)) {
-            galleries.value = data.map((item: any) => {
-                let coverImage = item.photo?.guid || null
-                if (coverImage) coverImage = coverImage.replace(/\\\\/g, '\\')
-                return {
-                    id: item.id, slug: item.slug || '',
-                    title: decode(item.title?.rendered || item.albumname || 'Без названия'),
-                    date: item.date || '', image: coverImage, albumLink: item.albumlink || '',
-                    photosCount: Array.isArray(item.gallery_photos) ? item.gallery_photos.length : 0,
-                    categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
-                        id: term.id, name: term.name, slug: term.slug,
-                    })) || [],
-                }
-            })
-        }
-        const tp = response.headers?.get('x-wp-totalpages')
-        if (tp) totalPages.value = parseInt(tp)
-        const ti = response.headers?.get('x-wp-total')
-        if (ti) totalItems.value = parseInt(ti)
-        currentPage.value = 1
-        window.scrollTo({ top: 0, behavior: 'smooth' })
-    } catch (err) {
-        console.error('Ошибка загрузки галерей:', err)
-        error.value = true
-    } finally {
-        loading.value = false
-    }
+    await loadGalleries(1, catId)
+    if (import.meta.client) window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 async function goToPage(page: number) {
-    loading.value = true
-    error.value = false
-    try {
-        const params: any = {
-            _embed: true, per_page: perPage, page: page, orderby: 'date', order: 'desc'
-        }
-        if (activeCategoryId.value) params.categories = activeCategoryId.value
-
-        const response = await $fetch.raw(`${baseURL}/wp-json/wp/v2/photogallery`, { params })
-        const data = response._data
-        if (Array.isArray(data)) {
-            galleries.value = data.map((item: any) => {
-                let coverImage = item.photo?.guid || null
-                if (coverImage) coverImage = coverImage.replace(/\\\\/g, '\\')
-                return {
-                    id: item.id, slug: item.slug || '',
-                    title: decode(item.title?.rendered || item.albumname || 'Без названия'),
-                    date: item.date || '', image: coverImage, albumLink: item.albumlink || '',
-                    photosCount: Array.isArray(item.gallery_photos) ? item.gallery_photos.length : 0,
-                    categories: item._embedded?.['wp:term']?.[0]?.map((term: any) => ({
-                        id: term.id, name: term.name, slug: term.slug,
-                    })) || [],
-                }
-            })
-        }
-        const tp = response.headers?.get('x-wp-totalpages')
-        if (tp) totalPages.value = parseInt(tp)
-        const ti = response.headers?.get('x-wp-total')
-        if (ti) totalItems.value = parseInt(ti)
-        currentPage.value = page
-        window.scrollTo({ top: 0, behavior: 'smooth' })
-    } catch (err) {
-        console.error('Ошибка загрузки галерей:', err)
-        error.value = true
-    } finally {
-        loading.value = false
-    }
+    await loadGalleries(page, activeCategoryId.value)
+    if (import.meta.client) window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 const formatDate = (dateStr: string) => {

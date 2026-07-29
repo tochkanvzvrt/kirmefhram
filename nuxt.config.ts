@@ -5,7 +5,6 @@ export default defineNuxtConfig({
   css: ['~/tailwind.css'],
   modules: ['@pinia/nuxt', '@nuxtjs/tailwindcss'],
 
-  // ================= ГЛОБАЛЬНЫЙ ХУК ОШИБОК РЕНДЕРИНГА =================
   hooks: {
     'render:error': (error, { url }) => {
       console.error('=== SSR RENDER ERROR ===')

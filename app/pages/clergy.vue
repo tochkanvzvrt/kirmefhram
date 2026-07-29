@@ -16,8 +16,8 @@
       <div v-if="pending" class="py-16 text-center">
         <p class="text-muted-foreground">Загрузка...</p>
       </div>
-      <div v-else-if="error" class="py-16 text-center text-destructive">
-        <p>Ошибка загрузки данных. Попробуйте позже.</p>
+      <div v-else-if="clergy.length === 0" class="py-16 text-center text-muted-foreground">
+        <p>Данные временно недоступны. Попробуйте обновить страницу позже.</p>
       </div>
       <div v-else class="gap-8 grid grid-cols-1 md:grid-cols-2 mx-auto max-w-6xl">
         <Card v-for="person in clergy" :key="person.id" class="hover:shadow-xl overflow-hidden transition-shadow">
@@ -61,18 +61,11 @@ interface ClergyMember {
   mitlink?: string
 }
 
-// ==================== ИСПРАВЛЕНО: используем useApi ====================
-const { baseURL } = useApi()
+const { apiFetch } = useApi()
 
-const { data, pending, error } = useFetch<Array<any>>(`${baseURL}/wp-json/wp/v2/clergy`, {
-  key: 'clergy',
-  server: true,
-  params: {
-    _embed: true,
-    per_page: 100,
-  }
-})
-// =====================================================================
+const { data, pending } = useAsyncData('clergy', () =>
+  apiFetch<any[]>('/clergy', { params: { _embed: true, per_page: 100 } })
+)
 
 const clergy = computed<ClergyMember[]>(() => {
   if (!data.value || !Array.isArray(data.value)) return []

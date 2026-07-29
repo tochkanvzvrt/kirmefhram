@@ -13,9 +13,6 @@
       <div v-if="pending" class="py-16 text-center">
         <p class="text-muted-foreground">Загрузка контактов...</p>
       </div>
-      <div v-else-if="error" class="py-16 text-center text-destructive">
-        <p>Ошибка загрузки данных. Попробуйте позже.</p>
-      </div>
       <div v-else class="gap-8 grid grid-cols-1 lg:grid-cols-2 mb-12">
         <div class="space-y-6">
           <Card class="p-6">
@@ -123,15 +120,11 @@
 import { MapPin, Phone, Mail, Clock } from 'lucide-vue-next'
 import Card from '~/components/ui/Card.vue'
 
-// ==================== ИСПРАВЛЕНО: используем useApi ====================
-const { baseURL } = useApi()
+const { apiFetch } = useApi()
 
-const { data, pending, error } = useFetch<Array<any>>(`${baseURL}/wp-json/wp/v2/details`, {
-  key: 'contacts',
-  server: true,
-  params: { per_page: 1 }
-})
-// =====================================================================
+const { data, pending } = useAsyncData('contacts', () =>
+  apiFetch<any[]>('/details', { params: { per_page: 1 } })
+)
 
 const contact = computed(() => data.value?.[0] || null)
 

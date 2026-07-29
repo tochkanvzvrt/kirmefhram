@@ -168,251 +168,192 @@ export const useContentStore = defineStore('content', {
     async fetchAllNewsCategories() {
       if (this.allNewsCategoriesList.length > 0) return
       const { apiFetch } = useApi()
-      try {
-        const data = await apiFetch<any[]>('/categories', {
-          params: { per_page: 100, orderby: 'name', order: 'asc' }
-        })
-        if (Array.isArray(data)) {
-          this.allNewsCategoriesList = data.map(mapCategoryItem)
-        }
-      } catch (err) {
-        console.error('Ошибка загрузки всех категорий новостей:', err)
-        this.allNewsCategoriesList = []
-      }
+      const data = await apiFetch<any[]>('/categories', {
+        params: { per_page: 100, orderby: 'name', order: 'asc' }
+      })
+      this.allNewsCategoriesList = Array.isArray(data) ? data.map(mapCategoryItem) : []
     },
 
     async fetchAllAnnouncementCategories() {
       if (this.allAnnouncementCategoriesList.length > 0) return
       const { apiFetch } = useApi()
-      try {
-        const data = await apiFetch<any[]>('/categories', {
-          params: { per_page: 100, orderby: 'name', order: 'asc' }
-        })
-        if (Array.isArray(data)) {
-          this.allAnnouncementCategoriesList = data.map(mapCategoryItem)
-        }
-      } catch (err) {
-        console.error('Ошибка загрузки всех категорий анонсов:', err)
-        this.allAnnouncementCategoriesList = []
-      }
+      const data = await apiFetch<any[]>('/categories', {
+        params: { per_page: 100, orderby: 'name', order: 'asc' }
+      })
+      this.allAnnouncementCategoriesList = Array.isArray(data) ? data.map(mapCategoryItem) : []
     },
 
     async fetchAllPhotogalleryCategories() {
       if (this.allPhotogalleryCategoriesList.length > 0) return
       const { apiFetch } = useApi()
-      try {
-        const data = await apiFetch<any[]>('/categories', {
-          params: { per_page: 100, orderby: 'name', order: 'asc' }
-        })
-        if (Array.isArray(data)) {
-          this.allPhotogalleryCategoriesList = data.map(mapCategoryItem)
-        }
-      } catch (err) {
-        console.error('Ошибка загрузки всех категорий фотогалерей:', err)
-        this.allPhotogalleryCategoriesList = []
-      }
+      const data = await apiFetch<any[]>('/categories', {
+        params: { per_page: 100, orderby: 'name', order: 'asc' }
+      })
+      this.allPhotogalleryCategoriesList = Array.isArray(data) ? data.map(mapCategoryItem) : []
     },
 
     async fetchNews() {
       const { apiFetch } = useApi()
-      try {
-        const data = await apiFetch<any[]>('/new', {
-          params: { _embed: true, per_page: 20 }
-        })
-        if (Array.isArray(data)) {
-          this.feedNews = data.map(mapNewsItem)
-        }
-      } catch (err) {
-        console.error('Ошибка загрузки новостей:', err)
-        this.feedNews = []
-      }
+      const data = await apiFetch<any[]>('/new', { params: { _embed: true, per_page: 20 } })
+      this.feedNews = Array.isArray(data) ? data.map(mapNewsItem) : []
     },
 
     async fetchAnnouncements() {
       const { apiFetch } = useApi()
-      try {
-        const data = await apiFetch<any[]>('/announcement', {
-          params: { per_page: 20, _embed: true }
-        })
-        if (Array.isArray(data)) {
-          this.feedAnnouncements = data.map(mapAnnouncementItem)
-        }
-      } catch (err) {
-        console.error('Ошибка загрузки анонсов:', err)
-        this.feedAnnouncements = []
-      }
+      const data = await apiFetch<any[]>('/announcement', { params: { per_page: 20, _embed: true } })
+      this.feedAnnouncements = Array.isArray(data) ? data.map(mapAnnouncementItem) : []
     },
 
     async fetchPhotogalleries() {
       const { apiFetch } = useApi()
-      try {
-        const data = await apiFetch<any[]>('/photogallery', {
-          params: { _embed: true, per_page: 20 }
-        })
-        if (Array.isArray(data)) {
-          this.feedPhotogalleries = data.map(mapPhotogalleryItem)
-        }
-      } catch (err) {
-        console.error('Ошибка загрузки фотогалерей:', err)
-        this.feedPhotogalleries = []
-      }
+      const data = await apiFetch<any[]>('/photogallery', { params: { _embed: true, per_page: 20 } })
+      this.feedPhotogalleries = Array.isArray(data) ? data.map(mapPhotogalleryItem) : []
     },
 
     async fetchNewsPage(page: number, perPage: number = 20, categoryId?: number) {
-      const { baseURL } = useApi()
-      const params: any = {
-        _embed: true, per_page: perPage, page: page, orderby: 'date', order: 'desc'
-      }
+      const { apiFetchRaw } = useApi()
+      const params: any = { _embed: true, per_page: perPage, page, orderby: 'date', order: 'desc' }
       if (categoryId) params.categories = categoryId
-      try {
-        const response = await $fetch.raw(`${baseURL}/wp-json/wp/v2/new`, { params })
-        if (Array.isArray(response._data)) this.news = response._data.map(mapNewsItem)
-        const tp = response.headers?.get('x-wp-totalpages')
-        if (tp) this.totalNewsPages = parseInt(tp)
-        const ti = response.headers?.get('x-wp-total')
-        if (ti) this.totalNewsItems = parseInt(ti)
-        this.currentNewsPage = page
-      } catch (err) {
-        console.error('Ошибка загрузки страницы новостей:', err)
+
+      const response = await apiFetchRaw('/new', { params })
+      if (!response) {
+        // WP не ответил вовремя — не роняем страницу, просто оставляем пустой список
         this.news = []
+        return
       }
+      if (Array.isArray(response._data)) this.news = response._data.map(mapNewsItem)
+      const tp = response.headers?.get('x-wp-totalpages')
+      if (tp) this.totalNewsPages = parseInt(tp)
+      const ti = response.headers?.get('x-wp-total')
+      if (ti) this.totalNewsItems = parseInt(ti)
+      this.currentNewsPage = page
     },
 
     async fetchAnnouncementsPage(page: number, perPage: number = 20, categoryId?: number) {
-      const { baseURL } = useApi()
-      const params: any = {
-        _embed: true, per_page: perPage, page: page, orderby: 'date', order: 'desc'
-      }
+      const { apiFetchRaw } = useApi()
+      const params: any = { _embed: true, per_page: perPage, page, orderby: 'date', order: 'desc' }
       if (categoryId) params.categories = categoryId
-      try {
-        const response = await $fetch.raw(`${baseURL}/wp-json/wp/v2/announcement`, { params })
-        if (Array.isArray(response._data)) this.announcements = response._data.map(mapAnnouncementItem)
-        const tp = response.headers?.get('x-wp-totalpages')
-        if (tp) this.totalAnnouncementPages = parseInt(tp)
-        const ti = response.headers?.get('x-wp-total')
-        if (ti) this.totalAnnouncementItems = parseInt(ti)
-        this.currentAnnouncementPage = page
-      } catch (err) {
-        console.error('Ошибка загрузки страницы анонсов:', err)
+
+      const response = await apiFetchRaw('/announcement', { params })
+      if (!response) {
         this.announcements = []
+        return
       }
+      if (Array.isArray(response._data)) this.announcements = response._data.map(mapAnnouncementItem)
+      const tp = response.headers?.get('x-wp-totalpages')
+      if (tp) this.totalAnnouncementPages = parseInt(tp)
+      const ti = response.headers?.get('x-wp-total')
+      if (ti) this.totalAnnouncementItems = parseInt(ti)
+      this.currentAnnouncementPage = page
     },
 
     async fetchPhotogalleriesPage(page: number, perPage: number = 20, categoryId?: number) {
-      const { baseURL } = useApi()
-      const params: any = {
-        _embed: true, per_page: perPage, page: page, orderby: 'date', order: 'desc'
-      }
+      const { apiFetchRaw } = useApi()
+      const params: any = { _embed: true, per_page: perPage, page, orderby: 'date', order: 'desc' }
       if (categoryId) params.categories = categoryId
-      try {
-        const response = await $fetch.raw(`${baseURL}/wp-json/wp/v2/photogallery`, { params })
-        if (Array.isArray(response._data)) this.photogalleries = response._data.map(mapPhotogalleryItem)
-        const tp = response.headers?.get('x-wp-totalpages')
-        if (tp) this.totalPhotogalleryPages = parseInt(tp)
-        const ti = response.headers?.get('x-wp-total')
-        if (ti) this.totalPhotogalleryItems = parseInt(ti)
-        this.currentPhotogalleryPage = page
-      } catch (err) {
-        console.error('Ошибка загрузки страницы фотогалерей:', err)
+
+      const response = await apiFetchRaw('/photogallery', { params })
+      if (!response) {
         this.photogalleries = []
+        return
       }
+      if (Array.isArray(response._data)) this.photogalleries = response._data.map(mapPhotogalleryItem)
+      const tp = response.headers?.get('x-wp-totalpages')
+      if (tp) this.totalPhotogalleryPages = parseInt(tp)
+      const ti = response.headers?.get('x-wp-total')
+      if (ti) this.totalPhotogalleryItems = parseInt(ti)
+      this.currentPhotogalleryPage = page
     },
 
     async fetchSchedule() {
       const { apiFetch } = useApi()
-      try {
-        const schedulePosts = await apiFetch<any[]>('/schedule', { params: { per_page: 100 } })
-        if (!Array.isArray(schedulePosts) || schedulePosts.length === 0) {
-          this.schedule = []
-          return
-        }
-        const dayMap = new Map<string, ScheduleDay>()
-        const weekdays = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота']
-
-        for (const post of schedulePosts) {
-          const monthCurrent = post.month_current
-          if (!monthCurrent || typeof monthCurrent !== 'string') continue
-
-          // Безопасный парсинг даты (год/месяц/день)
-          const [cy, cmStr] = monthCurrent.split('-')
-          const currentYear = parseInt(cy)
-          const currentMonth = parseInt(cmStr) - 1 // месяц от 0 до 11
-          if (isNaN(currentYear) || isNaN(currentMonth)) continue
-          const lastDayCurrent = new Date(currentYear, currentMonth + 1, 0).getDate()
-
-          let nextYear = currentYear, nextMonth = currentMonth + 1, lastDayNext = 31, hasNextMonth = false
-          if (post.month_next1 && typeof post.month_next1 === 'string') {
-            const [ny, nmStr] = post.month_next1.split('-')
-            const parsedNextYear = parseInt(ny)
-            const parsedNextMonth = parseInt(nmStr) - 1
-            if (!isNaN(parsedNextYear) && !isNaN(parsedNextMonth)) {
-              nextYear = parsedNextYear
-              nextMonth = parsedNextMonth
-              lastDayNext = new Date(nextYear, nextMonth + 1, 0).getDate()
-              hasNextMonth = true
-            }
-          }
-
-          const addOrUpdateDay = (year: number, month: number, dayNum: number, liturgicalText?: string, servicesText?: string) => {
-            if (dayNum < 1) return
-            const fullDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`
-            const dayOfWeek = new Date(fullDate).getDay()
-            const dayName = weekdays[dayOfWeek]
-            const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1)
-
-            let existing = dayMap.get(fullDate)
-            if (!existing) {
-              existing = { fullDate, date: String(dayNum), day: capitalizedDay, liturgical: '', services: '' }
-              dayMap.set(fullDate, existing)
-            }
-            if (liturgicalText !== undefined && liturgicalText.trim()) existing.liturgical = liturgicalText
-            if (servicesText !== undefined && servicesText.trim()) existing.services = servicesText
-          }
-
-          for (const [key, value] of Object.entries(post)) {
-            if (!key.startsWith('liturgical_day') || key.includes('_next_month') || !value || value === false || value === '') continue
-            const match = key.match(/liturgical_day(\d+)$/)
-            if (!match) continue
-            const dayNum = parseInt(match[1], 10)
-            if (isNaN(dayNum) || dayNum < 1 || dayNum > lastDayCurrent) continue
-            addOrUpdateDay(currentYear, currentMonth, dayNum, String(value), undefined)
-          }
-
-          for (const [key, value] of Object.entries(post)) {
-            if (!key.startsWith('daily_schedule') || key.includes('_next_month') || !value || value === false || value === '') continue
-            const match = key.match(/daily_schedule(\d+)$/)
-            if (!match) continue
-            const dayNum = parseInt(match[1], 10)
-            if (isNaN(dayNum) || dayNum < 1 || dayNum > lastDayCurrent) continue
-            addOrUpdateDay(currentYear, currentMonth, dayNum, undefined, String(value))
-          }
-
-          if (hasNextMonth) {
-            for (const [key, value] of Object.entries(post)) {
-              if (!key.startsWith('liturgical_day_next_month') || !value || value === false || value === '') continue
-              const match = key.match(/liturgical_day_next_month(\d+)$/)
-              if (!match) continue
-              const dayNum = parseInt(match[1], 10)
-              if (isNaN(dayNum) || dayNum < 1 || dayNum > lastDayNext) continue
-              addOrUpdateDay(nextYear, nextMonth, dayNum, String(value), undefined)
-            }
-            for (const [key, value] of Object.entries(post)) {
-              if (!key.startsWith('daily_schedule_next_month') || !value || value === false || value === '') continue
-              const match = key.match(/daily_schedule_next_month(\d+)$/)
-              if (!match) continue
-              const dayNum = parseInt(match[1], 10)
-              if (isNaN(dayNum) || dayNum < 1 || dayNum > lastDayNext) continue
-              addOrUpdateDay(nextYear, nextMonth, dayNum, undefined, String(value))
-            }
-          }
-        }
-        this.schedule = Array.from(dayMap.values())
-          .filter(day => day.liturgical || day.services)
-          .sort((a, b) => a.fullDate.localeCompare(b.fullDate))
-      } catch (err) {
-        console.error('Ошибка загрузки расписания:', err)
+      const schedulePosts = await apiFetch<any[]>('/schedule', { params: { per_page: 100 } })
+      if (!Array.isArray(schedulePosts) || schedulePosts.length === 0) {
         this.schedule = []
+        return
       }
+      const dayMap = new Map<string, ScheduleDay>()
+      const weekdays = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота']
+
+      for (const post of schedulePosts) {
+        const monthCurrent = post.month_current
+        if (!monthCurrent || typeof monthCurrent !== 'string') continue
+
+        const [cy, cmStr] = monthCurrent.split('-')
+        const currentYear = parseInt(cy)
+        const currentMonth = parseInt(cmStr) - 1
+        if (isNaN(currentYear) || isNaN(currentMonth)) continue
+        const lastDayCurrent = new Date(currentYear, currentMonth + 1, 0).getDate()
+
+        let nextYear = currentYear, nextMonth = currentMonth + 1, lastDayNext = 31, hasNextMonth = false
+        if (post.month_next1 && typeof post.month_next1 === 'string') {
+          const [ny, nmStr] = post.month_next1.split('-')
+          const parsedNextYear = parseInt(ny)
+          const parsedNextMonth = parseInt(nmStr) - 1
+          if (!isNaN(parsedNextYear) && !isNaN(parsedNextMonth)) {
+            nextYear = parsedNextYear
+            nextMonth = parsedNextMonth
+            lastDayNext = new Date(nextYear, nextMonth + 1, 0).getDate()
+            hasNextMonth = true
+          }
+        }
+
+        const addOrUpdateDay = (year: number, month: number, dayNum: number, liturgicalText?: string, servicesText?: string) => {
+          if (dayNum < 1) return
+          const fullDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`
+          const dayOfWeek = new Date(fullDate).getDay()
+          const dayName = weekdays[dayOfWeek]
+          const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1)
+
+          let existing = dayMap.get(fullDate)
+          if (!existing) {
+            existing = { fullDate, date: String(dayNum), day: capitalizedDay, liturgical: '', services: '' }
+            dayMap.set(fullDate, existing)
+          }
+          if (liturgicalText !== undefined && liturgicalText.trim()) existing.liturgical = liturgicalText
+          if (servicesText !== undefined && servicesText.trim()) existing.services = servicesText
+        }
+
+        for (const [key, value] of Object.entries(post)) {
+          if (!key.startsWith('liturgical_day') || key.includes('_next_month') || !value || value === false || value === '') continue
+          const match = key.match(/liturgical_day(\d+)$/)
+          if (!match) continue
+          const dayNum = parseInt(match[1], 10)
+          if (isNaN(dayNum) || dayNum < 1 || dayNum > lastDayCurrent) continue
+          addOrUpdateDay(currentYear, currentMonth, dayNum, String(value), undefined)
+        }
+
+        for (const [key, value] of Object.entries(post)) {
+          if (!key.startsWith('daily_schedule') || key.includes('_next_month') || !value || value === false || value === '') continue
+          const match = key.match(/daily_schedule(\d+)$/)
+          if (!match) continue
+          const dayNum = parseInt(match[1], 10)
+          if (isNaN(dayNum) || dayNum < 1 || dayNum > lastDayCurrent) continue
+          addOrUpdateDay(currentYear, currentMonth, dayNum, undefined, String(value))
+        }
+
+        if (hasNextMonth) {
+          for (const [key, value] of Object.entries(post)) {
+            if (!key.startsWith('liturgical_day_next_month') || !value || value === false || value === '') continue
+            const match = key.match(/liturgical_day_next_month(\d+)$/)
+            if (!match) continue
+            const dayNum = parseInt(match[1], 10)
+            if (isNaN(dayNum) || dayNum < 1 || dayNum > lastDayNext) continue
+            addOrUpdateDay(nextYear, nextMonth, dayNum, String(value), undefined)
+          }
+          for (const [key, value] of Object.entries(post)) {
+            if (!key.startsWith('daily_schedule_next_month') || !value || value === false || value === '') continue
+            const match = key.match(/daily_schedule_next_month(\d+)$/)
+            if (!match) continue
+            const dayNum = parseInt(match[1], 10)
+            if (isNaN(dayNum) || dayNum < 1 || dayNum > lastDayNext) continue
+            addOrUpdateDay(nextYear, nextMonth, dayNum, undefined, String(value))
+          }
+        }
+      }
+      this.schedule = Array.from(dayMap.values())
+        .filter(day => day.liturgical || day.services)
+        .sort((a, b) => a.fullDate.localeCompare(b.fullDate))
     },
   },
 

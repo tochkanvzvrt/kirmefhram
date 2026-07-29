@@ -17,9 +17,6 @@
       <div v-if="pending" class="py-16 text-center">
         <p class="text-muted-foreground">Загрузка...</p>
       </div>
-      <div v-else-if="error" class="py-16 text-center text-destructive">
-        <p>Ошибка загрузки данных. Попробуйте позже.</p>
-      </div>
       <div v-else class="mx-auto max-w-4xl">
         <div v-html="historicalContent" class="wp-content"></div>
       </div>
@@ -30,20 +27,17 @@
 <script setup lang="ts">
 import { Church } from 'lucide-vue-next'
 
-const config = useRuntimeConfig()
-const wpBase = config.public.wpApi
+const { apiFetch } = useApi()
 
-const { data, pending, error } = useFetch<Array<any>>(`${wpBase}/wp-json/wp/v2/about`, {
-  key: 'about-history',
-  server: true,
-  params: { per_page: 1 }
-})
+const { data, pending } = useAsyncData('about-history', () =>
+  apiFetch<any[]>('/about', { params: { per_page: 1 } })
+)
 
 const aboutItem = computed(() => data.value?.[0] || null)
 
 const pageTitle = computed(() => aboutItem.value?.title?.rendered || 'О храме')
 
-const historicalContent = computed(() => aboutItem.value?.content?.rendered || '<p>Нет данных</p>')
+const historicalContent = computed(() => aboutItem.value?.content?.rendered || '<p>Информация временно недоступна. Попробуйте обновить страницу позже.</p>')
 
 useHead({
   title: `${pageTitle.value} | Кирилло-Мефодиевский храм`,
@@ -54,7 +48,6 @@ useHead({
 </script>
 
 <style scoped>
-/* ======= Базовые стили контента (как в новостях) ======= */
 .wp-content {
   font-size: 1.125rem;
   line-height: 1.7;

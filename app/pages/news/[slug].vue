@@ -57,22 +57,23 @@ const stripHtml = (html: string): string => {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-const config = useRuntimeConfig()
-const wpBase = process.server ? config.wpApiInternal : config.public.wpApi
+const { apiFetch } = useApi()
 
-const { data: articleData, error } = await useAsyncData(`news-${newsSlug}`, async () => {
-  try {
-    return await $fetch(`${wpBase}/wp-json/wp/v2/new`, {
-      params: { slug: newsSlug, _embed: true, status: 'publish' }
-    })
-  } catch (e) {
-    console.error('News fetch error:', e)
-    return []
+const { data: articleData } = await useAsyncData(`news-${newsSlug}`, () =>
+  apiFetch<any[]>('/new', {
+    params: { slug: newsSlug, _embed: true, status: 'publish' },
+    timeout: 8000,
+    retry: 1,
+  })
+)
+
+if (import.meta.server) {
+  if (articleData.value === null) {
+    throw createError({ statusCode: 503, statusMessage: 'Сервис временно недоступен', fatal: false })
   }
-})
-
-if (import.meta.server && (error.value || !articleData.value || !Array.isArray(articleData.value) || articleData.value.length === 0)) {
-  throw createError({ statusCode: 404, message: 'Новость не найдена' })
+  if (!Array.isArray(articleData.value) || articleData.value.length === 0) {
+    throw createError({ statusCode: 404, message: 'Новость не найдена' })
+  }
 }
 
 const article = computed(() => {

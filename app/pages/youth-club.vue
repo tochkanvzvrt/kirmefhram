@@ -194,6 +194,7 @@ import { ref, computed } from 'vue'
 import { Users, Calendar, ArrowRight } from 'lucide-vue-next'
 import Card from '~/components/ui/Card.vue'
 import { decode } from 'html-entities'
+import { toArray } from '../composables/useSafeArray'
 
 const YOUTH_CATEGORY_ID = 4
 
@@ -261,7 +262,7 @@ const getGalleryUrl = (item: any): string => {
 }
 
 const latestYouthNews = computed(() => {
-  return (youthNews.value || []).map((item: any) => ({
+  return toArray(youthNews.value).map((item: any) => ({
     id: item.id,
     slug: item.slug || '',
     title: decode(item.title?.rendered || 'Без названия'),
@@ -276,7 +277,7 @@ const latestYouthNews = computed(() => {
 })
 
 const latestYouthAnnouncements = computed(() => {
-  return (youthAnnouncements.value || []).map((item: any) => ({
+  return toArray(youthAnnouncements.value).map((item: any) => ({
     id: item.id,
     slug: item.slug || '',
     title: decode(item.title?.rendered || 'Без названия'),
@@ -290,7 +291,7 @@ const latestYouthAnnouncements = computed(() => {
 })
 
 const latestYouthGalleries = computed(() => {
-  return (youthGalleries.value || []).map((item: any) => {
+  return toArray(youthGalleries.value).map((item: any) => {
     let coverImage = item.photo?.guid || null
     if (coverImage) coverImage = coverImage.replace(/\\\\/g, '\\')
     return {

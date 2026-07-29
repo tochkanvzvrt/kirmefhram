@@ -95,22 +95,23 @@ import { decode } from 'html-entities'
 const route = useRoute()
 const gallerySlug = route.params.slug
 
-const config = useRuntimeConfig()
-const wpBase = process.server ? config.wpApiInternal : config.public.wpApi
+const { apiFetch } = useApi()
 
-const { data: galleryData, error } = await useAsyncData(`gallery-${gallerySlug}`, async () => {
-  try {
-    return await $fetch(`${wpBase}/wp-json/wp/v2/photogallery`, {
-      params: { slug: gallerySlug, _embed: true, status: 'publish' }
-    })
-  } catch (e) {
-    console.error('Gallery fetch error:', e)
-    return []
+const { data: galleryData } = await useAsyncData(`gallery-${gallerySlug}`, () =>
+  apiFetch<any[]>('/photogallery', {
+    params: { slug: gallerySlug, _embed: true, status: 'publish' },
+    timeout: 8000,
+    retry: 1,
+  })
+)
+
+if (import.meta.server) {
+  if (galleryData.value === null) {
+    throw createError({ statusCode: 503, statusMessage: 'Сервис временно недоступен', fatal: false })
   }
-})
-
-if (import.meta.server && (error.value || !galleryData.value || !Array.isArray(galleryData.value) || galleryData.value.length === 0)) {
-  throw createError({ statusCode: 404, message: 'Галерея не найдена' })
+  if (!Array.isArray(galleryData.value) || galleryData.value.length === 0) {
+    throw createError({ statusCode: 404, message: 'Галерея не найдена' })
+  }
 }
 
 const gallery = computed(() => {

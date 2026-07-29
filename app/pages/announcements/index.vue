@@ -100,6 +100,7 @@ import Card from '~/components/ui/Card.vue'
 import Badge from '~/components/ui/Badge.vue'
 import { useContentStore } from '~/stores/content'
 import { decode } from 'html-entities'
+import { toArray } from '../../composables/useSafeArray'
 
 const route = useRoute()
 const store = useContentStore()
@@ -138,7 +139,7 @@ try {
 }
 
 const filteredAnnouncements = computed(() => {
-  return (store.announcements || []).map(item => ({
+  return toArray(store.announcements).map(item => ({
     ...item,
     title: decode(item.title || '')
   }))

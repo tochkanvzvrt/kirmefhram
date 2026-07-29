@@ -100,13 +100,14 @@
 <script setup lang="ts">
 import { Phone } from 'lucide-vue-next'
 
-const { baseURL } = useApi()
+const { apiFetch } = useApi()
 
-const { data, pending } = useFetch<Array<any>>(`${baseURL}/wp-json/wp/v2/details`, {
-  key: 'footer-details',
-  server: true,
-  params: { per_page: 1 }
-})
+// apiFetch уже включает timeout/retry и ловит ошибки внутри —
+// если WP не ответит вовремя, вернётся null, и футер отрисуется с дефолтами,
+// а не уронит SSR
+const { data, pending } = useAsyncData('footer-details', () =>
+  apiFetch<any[]>('/details', { params: { per_page: 1 } })
+)
 
 const contact = computed(() => data.value?.[0] || null)
 const workingHours = computed(() => contact.value?.time || '07:00 – 20:00')

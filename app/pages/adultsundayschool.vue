@@ -176,6 +176,7 @@ import { computed } from 'vue'
 import { GraduationCap, Users, Calendar, ArrowRight } from 'lucide-vue-next'
 import Card from '~/components/ui/Card.vue'
 import { decode } from 'html-entities'
+import { toArray } from '../composables/useSafeArray'
 
 const ADULT_SUNDAY_SCHOOL_CATEGORY_ID = 9
 
@@ -243,7 +244,7 @@ const getGalleryUrl = (item: any): string => {
 }
 
 const latestAdultSundaySchoolNews = computed(() => {
-  return (adultNews.value || []).map((item: any) => ({
+  return toArray(adultNews.value).map((item: any) => ({
     id: item.id,
     slug: item.slug || '',
     title: decode(item.title?.rendered || 'Без названия'),
@@ -258,7 +259,7 @@ const latestAdultSundaySchoolNews = computed(() => {
 })
 
 const latestAdultSundaySchoolAnnouncements = computed(() => {
-  return (adultAnnouncements.value || []).map((item: any) => ({
+  return toArray(adultAnnouncements.value).map((item: any) => ({
     id: item.id,
     slug: item.slug || '',
     title: decode(item.title?.rendered || 'Без названия'),
@@ -272,7 +273,7 @@ const latestAdultSundaySchoolAnnouncements = computed(() => {
 })
 
 const latestAdultSundaySchoolGalleries = computed(() => {
-  return (adultGalleries.value || []).map((item: any) => {
+  return toArray(adultGalleries.value).map((item: any) => {
     let coverImage = item.photo?.guid || null
     if (coverImage) coverImage = coverImage.replace(/\\\\/g, '\\')
     return {
